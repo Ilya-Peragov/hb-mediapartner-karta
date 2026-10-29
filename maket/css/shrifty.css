@@ -1,0 +1,5 @@
+/* Клей, а не оформление: в приложении --font-ui и --font-display задаёт next/font (FONT_VARS в layout),
+   в CSS кита их нет, поэтому вне приложения они пусты и текст падает на системный шрифт.
+   Здесь только две переменные и подключение гарнитур из брендбука (Geologica для заголовков, IBM Plex Sans для текста и цифр). */
+@import url("https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap&subset=cyrillic");
+:root { --font-ui: "IBM Plex Sans", system-ui, sans-serif; --font-display: "Geologica", "IBM Plex Sans", sans-serif; }

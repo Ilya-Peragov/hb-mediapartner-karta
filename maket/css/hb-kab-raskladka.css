@@ -1,0 +1,129 @@
+/*
+ * Раскладка кабинетов и админки поверх hb-kab.css (находки владельца 13.10.2026).
+ *
+ * 1. Ширина колонки (решение владельца 13.10.2026). Кит держит .kab__main в 1180px
+ * плюс поля и прижимает к меню: на широком мониторе справа пусто, а таблицам и формам тесно. Колонка
+ * растёт до 2000px и стоит по центру места справа от меню; .wrap внутри колонки ширину не режет и
+ * тянется на всю колонку, как .phead--kab > .wrap у кита.
+ * Все селекторы под корнем `:where(.hb)`, как у hb-kab.css. Кандидат в расширение кита.
+ */
+:where(.hb) .kab__main { max-width: 2000px; margin-inline: auto; }
+:where(.hb) .kab__main .wrap { max-width: none; margin: 0; }
+
+/* 2. Таблицы: кит ставит ячейкам overflow-wrap: anywhere (hb-kab.css, В9-К1), и браузер считает, что
+   ячейку можно сжать до одной буквы: столбцы сжимаются, слова и кнопки рвутся по буквам («И з м е н и ть»,
+   «Локаль ный партнё р»). Перенос только по словам; длинная строка без пробелов (почта, адрес) рвётся,
+   только если не влезает в столбец, а широкую таблицу кит и так прокручивает вбок (.tbl overflow-x).
+   Кнопки в ячейке в одну строку. */
+:where(.hb) .tbl :is(td, tbody th) { overflow-wrap: break-word; }
+:where(.hb) .tbl :is(.btn, .pill) { white-space: nowrap; }
+
+/* 3. Оглавление сбоку (.toc--side) на широком экране: подпись <small> («версия 2 · изменено ...») под
+   названием, а не в той же строке, иначе в узкой колонке она вылезает за край карточки. На телефоне
+   оглавление - ряд пилюль кита, его не трогаем. */
+@media (min-width: 900px) { :where(.hb) .toc--side a { flex-direction: column; justify-content: flex-start; gap: 2px; } }
+
+/* Подборка клиента (/collection/...), находки 13.10.2026.
+   а) Форма заявки .form--center: кит держит .form в 560px у левого края, на 1440 правая половина секции пустела.
+      Форма той же ширины стоит по центру колонки; на телефоне занимает всю ширину, как раньше. */
+:where(.hb) .form--center { width: 100%; margin-inline: auto; }
+/* б) Строка итога таблицы с подписью <th> (план оплаты): кит заливает фоном только <th>, ячейки <td> рядом
+      оставались белыми, и серая полоса обрывалась на середине строки. Заливка на всю строку (на телефоне
+      у карточки итога .tbl--stack тот же фон, разницы нет). */
+:where(.hb) .tbl tfoot tr:has(> th) > td { background: var(--hb-sunken); }
+/* в) Галерея объекта в .split (карточка подборки, страница объекта, подборка мнений): hb-kab-6-2.css переводит
+      .split на flex с основой первой колонки 200 px, и фото сжималось до ~320 px, а цена растягивалась на остаток.
+      Здесь .split снова сетка кита с пропорциями первого экрана карточки каталога (.p-ph: 7 к 5), галерея главная;
+      до 899 px кит ставит одну колонку, галерея на всю ширину. Печать раскладывает .split своим правилом. */
+:where(.hb) .split:has(> .gallery) { display: grid; gap: 24px 40px; --hb-split-cols: minmax(0, 7fr) minmax(0, 5fr); }
+
+/* Навигация и доски кабинетов и админки, находки 13.10.2026 (общие элементы).
+   а) Боковое меню .knav: кит режет подпись пункта многоточием («Распределение клие...», «API: передача клиен...»).
+      Подпись переносится на вторую строку; пункт растёт с 44 до 52 px только у двухстрочных. Свёрнутое меню
+      (.kab--rail) прячет подпись своим правилом с большей специфичностью, его не трогаем. Нижнее меню телефона
+      не переносит: там короткая подпись пункта (`short` у HbFrame).
+   Пункты ближе друг к другу (просьба владельца 13.10.2026): высота однострочного пункта 36 px вместо 44 px
+   касания, боковое меню видно только на широком экране, у телефона своё нижнее меню. */
+:where(.hb) .knav a { min-height: 36px; padding-block: 6px; }
+:where(.hb) .knav a > span:not(.badge) { overflow: visible; text-overflow: clip; white-space: normal; }
+/* б) Канбан .board шире колонки страницы: последняя колонка срезалась краем ровно по заголовку, и доска не
+      выглядела прокручиваемой. Край доски гаснет с той стороны, куда ещё можно листать: в начале прокрутки
+      правый, в конце левый, посередине оба; затухание набегает и сходит на первых и последних 40 px прокрутки.
+      Тот же приём, что у ленты .anchors кита (hb.css, N2). Только в @supports: без scroll-timeline анимация
+      встала бы в конечный кадр и навсегда гасила левый край; у доски, которая помещается
+      целиком, затухания нет. Рамка фокуса доски внутрь: снаружи её съела бы маска. */
+@property --hb-board-fade { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --hb-board-fade-s { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes hb-board-fade { from { --hb-board-fade: 40px; } to { --hb-board-fade: 0px; } }
+@keyframes hb-board-fade-s { from { --hb-board-fade-s: 0px; } to { --hb-board-fade-s: 40px; } }
+@supports (animation-timeline: scroll()) {
+:where(.hb) .board { -webkit-mask: linear-gradient(to right, transparent, #000 var(--hb-board-fade-s), #000 calc(100% - var(--hb-board-fade)), transparent); mask: linear-gradient(to right, transparent, #000 var(--hb-board-fade-s), #000 calc(100% - var(--hb-board-fade)), transparent); animation: hb-board-fade-s linear both, hb-board-fade linear both; animation-timeline: scroll(self inline), scroll(self inline); animation-range: 0 40px, calc(100% - 40px) 100%; }
+[dir="rtl"] :where(.hb) .board { -webkit-mask: linear-gradient(to left, transparent, #000 var(--hb-board-fade-s), #000 calc(100% - var(--hb-board-fade)), transparent); mask: linear-gradient(to left, transparent, #000 var(--hb-board-fade-s), #000 calc(100% - var(--hb-board-fade)), transparent); }
+}
+:where(.hb) .board:focus-visible { outline-offset: -2px; }
+/* в) Мета строки списка .lrow__m в одну строку (бейдж роли, глаз и сердце со счётчиками в «Топе авторов подборок»):
+      строчная иконка по середине строки текста, а не на базовой линии, где она торчит выше цифры. */
+:where(.hb) .lrow__m .ic { vertical-align: middle; }
+
+/* Формы и кнопки админки, находки 13.10.2026.
+   а) Кнопки шапки на телефоне: кит даёт им flex: 1 1 0 (равные доли ряда), и длинная подпись рвалась
+      по словам внутри кнопки («Добавить / локального / партнёра»). Доля от ширины подписи: кнопки,
+      которые не помещаются рядом, переносятся целиком на свою строку и тянутся на неё. */
+@media (max-width: 899px) { :where(.hb) .phead__row > .phead__acts > .btn:not(.btn--icon) { flex: 1 1 auto; } }
+/* б) Зона загрузки label.drop прямо в .field: правило подписи поля (.field > label: padding 0, 13/18, 500)
+      весомее .drop и снимало её поля, подсказка упиралась в пунктир. Возвращаем поля и текст зоны. */
+:where(.hb) .field > label.drop { padding: var(--hb-sp-5); font-size: var(--hb-fs-small); line-height: 20px; font-weight: 400; }
+/* в) Радио в обёртке .check: пока в группе ничего не выбрано, браузер считает каждую радиокнопку
+      :indeterminate, и правило флажка «часть выбрана» заливало их все акцентом - две одинаковые
+      зелёные точки, выбор не виден. У радио такого состояния нет: пустой кружок, как у невыбранной.
+      Рамку ошибки и вид disabled кита не перебиваем. */
+:where(.hb) .check:not(.is-err) input[type="radio"]:indeterminate:not(:disabled, [aria-invalid="true"]) { border-color: var(--hb-control); background-color: var(--hb-paper); }
+:where(.hb) .check input[type="radio"]:indeterminate::before { transform: scale(0); }
+/* г) Текстовая кнопка .btn--link значением в карточке таблицы на телефоне (имя клиента, открывающее карточку):
+      длинное имя переносится по краю значения, а не выходит за карточку одной строкой. */
+@media (max-width: 639px) { :where(.hb) .tbl--stack td > .btn--link { white-space: normal; text-align: end; } }
+
+/* Кабинеты агента и локального партнёра, находки 13.10.2026.
+   а) «Стандарты»: текст раздела в карточке .panel шириной ~1000 px кит держал в 680 px (.hb-prose),
+      справа пустая треть карточки. Как у .doc и .article кита - 860 px: ещё удобная для чтения строка. */
+:where(.hb) .panel[id^="standards-"] > .hb-prose { max-width: 860px; }
+/* б) Строка очереди «Позвонить первым» (аватар, имя, срок .lrow__m, кнопка): у кита три колонки, и четвёртый
+      ребёнок - кнопка - уходил второй строкой под аватар и раздувал его колонку. Четыре колонки: срок и кнопка
+      справа рядом. На телефоне (до 479 px) остаётся раскладка кита: срок и кнопка под именем. */
+@media (min-width: 480px) { :where(.hb) .lrow:has(> .avatar + .lrow__b + .lrow__m + .btn) { grid-template-columns: auto minmax(0, 1fr) auto auto; } }
+/* в) Плитки действий, которые переносятся рядами, а не уезжают за край прокруткой (карточка подборки:
+      на 375 четвёртая плитка была обрезана). Обёртка .contact в ряду плиток (кнопка PDF с якорем «Спутника»)
+      - такая же плитка. */
+:where(.hb) .tiles--wrap { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); overflow: visible; }
+:where(.hb) .tiles > .contact { display: grid; }
+:where(.hb) .tiles > .contact > .btn { flex-direction: column; gap: 6px; min-height: 84px; padding: 10px 8px; white-space: normal; text-align: center; font-size: var(--hb-fs-small); line-height: 18px; }
+/* г) Почта второй строкой .lrow (команда агента): переносится по краю, а не по дефису внутри адреса
+      («kit-» / «ostalnye.invalid» читалось как два слова). */
+:where(.hb) .lrow__b > .lrow__mail { word-break: break-all; }
+
+/* Логотип компании агента (HBR-330): в шапке бокового меню вместо знака Housebook стоит <img> из хранилища, и кит
+   ограничивал высоту только знаку (.kab__head > .brand svg: 20 px). У <img> кит ставит height: auto, атрибут height
+   проигрывает, и логотип рисовался в натуральную величину поверх шапки. Высота 20 px, как у знака; ширина не больше
+   ширины знака (133 px по расчёту у .kab__head > .brand), чтобы кнопка свёртки осталась в колонке 256; пропорции целы. */
+:where(.hb) .kab__head > .brand img { height: 20px; width: auto; max-width: 133px; object-fit: contain; }
+
+/* Сортировка таблицы не двигает страницу (находка владельца 13.10.2026): когда верх окна приходится на
+   таблицу, браузер цепляет прокрутку за строку (scroll anchoring), строка при сортировке переезжает, и
+   страница уезжала вслед за ней. Ничто внутри таблицы якорем не считается. */
+:where(.hb) .tbl { overflow-anchor: none; }
+
+/* Месяц, год, часы и минуты в календаре .dpick - малые списки кита (HbSelect: .cs > .cs__btn.select.select--s), а не
+   родные select (решение владельца 13.10.2026). Правила кита .dpick__hd > .select и .dpick__t > .select написаны под
+   прямой родной список, здесь те же размеры для обёртки .cs: месяц тянется, год и время по 84 px, кегль и отступы те же. */
+:where(.hb) .dpick__hd > .cs { flex: 1 1 0; }
+:where(.hb) .dpick__hd > .cs + .cs, :where(.hb) .dpick__t > .cs { flex: 0 0 84px; }
+:where(.hb) :is(.dpick__hd, .dpick__t) > .cs > .cs__btn { padding: 0 28px 0 10px; font-size: var(--hb-fs-small); }
+:where(.hb) :is(.dpick__hd, .dpick__t) > .cs > .cs__btn::after { right: 8px; width: 16px; height: 16px; margin-top: -8px; }
+
+/* Переписки (/admin/inbox, .convo--wide): с 900px схема телефона, одна панель на всю ширину: список диалогов, по нажатию на строку переписка вместо списка с кнопкой «назад» (data-show и скрытие панелей как в правиле 4 hb-kab-3b.css, оно там только до 900px). Превью второй строкой режется многоточием, как у кита. */
+@media (min-width: 900px) {
+  :where(.hb) .convo--wide { grid-template-columns: minmax(0, 1fr); }
+  :where(.hb) .convo--wide[data-show="list"] > :last-child, :where(.hb) .convo--wide[data-show="chat"] > :first-child { display: none; }
+  :where(.hb) .convo--wide [data-convo-back] { display: block; }
+  :where(.hb) .convo--wide .lrow__b > span:not(.badges) { white-space: nowrap; overflow-wrap: normal; }
+}

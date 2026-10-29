@@ -1,0 +1,20 @@
+/*
+ * Добавки к hb-kab.css для страниц группы 4 (кабинет локального партнёра, `/broker/*`). Источник: gruppa-4.css
+ * макетов, правила 6-9 (правила 1, 3, 4, 5 те же, что у группы 3b, и лежат в hb-kab-3b.css; правило 2 покрыто строками
+ * `.lrow:has(> .lrow__b:first-child)` кита). Все селекторы под корнем `:where(.hb)`, как у сгенерированного hb-kab.css.
+ * Кандидаты в расширение кита; пока их там нет, живут отдельным файлом (отчёт группы 4, «Нужно в расширение»).
+ */
+
+/* 6. Окно кадрирования фото профиля (ImageCropModal): в ките нет сцены кадрирования; квадрат с круглой маской, ползунок - .slider кита.
+   Цвета токенами кита: фон --hb-jade-hover тёмный в обеих темах, тень маски --hb-scrim. */
+:where(.hb) .crop { position: relative; aspect-ratio: 1; border-radius: var(--hb-r-l); background: var(--hb-jade-hover); overflow: hidden; }
+:where(.hb) .crop__mask { position: absolute; inset: 10%; border-radius: 50%; box-shadow: 0 0 0 999px var(--hb-scrim); outline: 2px solid var(--hb-on-jade); pointer-events: none; }
+
+/* 7. Кнопка-«ссылка» .more (открывает окно «откуда число»): у кнопки остаются системные фон и рамка, в «Сумерках» контраст 2,15. */
+:where(.hb) button.more { background: none; border: 0; padding: 0; cursor: pointer; }
+
+/* 8. Замок в заголовке системной колонки доски: знак и подпись в одном ряду с зазором. */
+:where(.hb) .board__h > span:has(> .ic) { display: inline-flex; align-items: center; gap: 6px; }
+
+/* 9. Вторая строка строки списка .lrow: кит режет её многоточием, в коде она переносится (break-words, канон §10.21). */
+:where(.hb) .lrow__b > span { white-space: normal; overflow-wrap: anywhere; }

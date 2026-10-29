@@ -1,0 +1,38 @@
+/*
+ * Добавки к hb-kab.css для страниц группы 6-2 (админка, /admin/closer-admission/[id] ... /admin/library/telegram-prices).
+ * Источник: gruppa-6-2.css макетов. Все селекторы под корнем `:where(.hb)`. Кандидаты в расширение кита
+ * (README-6-2.md, «Свой CSS»); пока их там нет, живут отдельным файлом, как hb-kab-6-1.css.
+ */
+
+/* 1. Редактор ячейки (поле и две кнопки) в карточке .tbl--stack на телефоне шире строки: кнопки переносятся под поле. */
+@media (max-width: 639px) {
+  :where(.hb) .tbl--stack .cell:has(> .input) { flex-wrap: wrap; }
+}
+
+/* 2. Список слева и содержимое справа (правила страны, автообновление цен): на узком экране содержимое уходит под список. */
+:where(.hb) .split { display: flex; flex-wrap: wrap; gap: 24px; }
+:where(.hb) .split > :first-child { flex: 1 1 200px; min-width: 0; }
+:where(.hb) .split > :last-child { flex: 999 1 300px; min-width: 0; }
+
+/* 3. Карточка-кнопка (канбан обращений, кандидат в разборе переписок, раскрывающиеся строки): текст слева, как у article.panel. */
+:where(.hb) .board button.panel, :where(.hb) button.panel.stack { text-align: left; align-items: stretch; font: inherit; color: inherit; cursor: pointer; }
+
+/* 4. Широкая таблица (поступления комиссии, лиды сайта): отступ ячеек 12 px; перенос заголовков даёт .tbl--wrap-head из hb-kab-6-1.css. */
+:where(.hb) .tbl--wrap-head :is(th, td) { padding-inline: 12px; }
+
+/* 5. Таблица лидов сайта: телефон не переносится. */
+:where(.hb) .tbl--nowrap-phone td[data-label="Телефон"] { white-space: nowrap; }
+
+/* Многострочный текст правила и журнала: переводы строк хранятся в значении и должны доехать до глаз. */
+:where(.hb) .pre-line { white-space: pre-line; overflow-wrap: anywhere; }
+
+/* Список коротких пунктов в форме (главное, риски): поле в .cell занимает остаток строки, а не 9em ячейки таблицы. */
+:where(.hb) .stack--s > .cell > .input { flex: 1; width: auto; }
+/* строка таблицы открывает карточку по щелчку в любом месте (клавиатуре служит кнопка с именем в первой ячейке) */
+:where(.hb) .tbl tr.is-open { cursor: pointer; }
+:where(.hb) .tbl tr.is-open:hover > td { background: var(--hb-sunken); }
+
+/* Подпись-тревога в строке таблицы: разговор без исполнителя, просьба о живом человеке (требование владельца 15.09.2026: не терять красный сигнал). */
+:where(.hb) .t-err { color: var(--hb-err); }
+/* Обёртка страницы админки (AdminKitPage) внутри колонки .kab__main оболочки: детям остаётся её сетка и зазор. */
+:where(.hb) .kab__page { display: contents; }

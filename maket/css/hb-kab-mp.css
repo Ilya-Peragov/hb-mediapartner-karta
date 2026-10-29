@@ -1,0 +1,125 @@
+/* hb-kab-mp.css - карточка и список медиапартнёров (админка). Перенос из макета ux-v3/novoe.css без панели демонстрации и без правок графиков.
+   ТОЛЬКО то, чего нет в ките. Всё построено на переменных кита (--hb-*), своих hex нет.
+   Селекторы в духе кита: :where(.hb) .класс, чтобы переопределять кит равной силой за счёт порядка подключения.
+   У каждого класса комментарий «чего нет в ките и почему». */
+
+/* ---------- .steps--path: длинный путь партнёра, 11 шагов ----------
+   Чего нет в ките: .steps--chain рассчитан на 3-5 шагов, рисует шеврон у левого края кружка, на ширине до 1099 px
+   ломается в три колонки и не умеет прокручиваться, а у нас 11 шагов, по которым нужно кликать. Здесь классический
+   степпер: одинаковые колонки, подпись по центру кружка, соединитель (линия или линия со стрелкой) строго между кружками
+   на уровне их центра. Кружок, галочка у .is-done, кольцо у aria-current="step", «!» у .is-err берутся из кита как есть. */
+/* До 1279 px шаги держат читаемую ширину и прокручиваются по горизонтали; у краёв тень-подсказка («ещё есть шаги»):
+   градиенты local/scroll, своих цветов нет, берётся --hb-ink и --hb-paper. */
+:where(.hb) .steps--path { --path-d: 40px; --path-gap: var(--hb-sp-4); --path-pad: 4px; grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(96px, 1fr); gap: var(--path-gap); overflow-x: auto; padding-bottom: var(--hb-sp-2); scroll-snap-type: x proximity; overscroll-behavior-x: contain;
+  background: linear-gradient(to right, var(--hb-paper) 30%, transparent) left / 32px 100% no-repeat local, linear-gradient(to left, var(--hb-paper) 30%, transparent) right / 32px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--hb-ink) 22%, transparent), transparent) left / 12px 100% no-repeat scroll, radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--hb-ink) 22%, transparent), transparent) right / 12px 100% no-repeat scroll; }
+:where(.hb) .steps--path .step { scroll-snap-align: start; align-content: start; justify-items: center; text-align: center; }
+:where(.hb) .steps--chain.steps--path .step::before { width: var(--path-d); height: var(--path-d); }
+:where(.hb) .steps--path h3 { font-size: var(--hb-fs-ui); line-height: 20px; }
+/* Соединитель: ::after каждого шага кроме последнего ведёт к следующему кружку. Начало: правый край своего кружка + зазор,
+   длина: до левого края следующего кружка минус зазор. Высота 8 px, по центру кружка; форму (линия 1-2 px или линия
+   со стрелкой) задаёт clip-path, цвет отрезка - сам фон: серый (граница кита) у будущих, акцент у пройденных. */
+:where(.hb) .steps--chain.steps--path .step:not(:last-child)::after { content: ""; position: absolute; left: calc(50% + var(--path-d) / 2 + var(--path-pad)); top: calc(var(--path-d) / 2 - 4px); width: calc(100% + var(--path-gap) - var(--path-d) - 2 * var(--path-pad)); height: 8px; border: 0; transform: none; background: var(--hb-control);
+  clip-path: polygon(0 3.5px, 100% 3.5px, 100% 4.5px, 0 4.5px); }
+:where(.hb) .steps--chain.steps--path .step.is-done:not(:last-child)::after { background: var(--hb-accent); clip-path: polygon(0 3px, 100% 3px, 100% 5px, 0 5px); }
+:where(.hb) .steps--chain.steps--path.steps--arrow .step:not(:last-child)::after { clip-path: polygon(0 3.5px, calc(100% - 7px) 3.5px, calc(100% - 7px) 0, 100% 4px, calc(100% - 7px) 8px, calc(100% - 7px) 4.5px, 0 4.5px); }
+:where(.hb) .steps--chain.steps--path.steps--arrow .step.is-done:not(:last-child)::after { clip-path: polygon(0 3px, calc(100% - 7px) 3px, calc(100% - 7px) 0, 100% 4px, calc(100% - 7px) 8px, calc(100% - 7px) 5px, 0 5px); }
+:where(.hb) .steps--chain.steps--path .step:last-child::after { content: none; }
+/* От 1280 px все 11 шагов помещаются в карточку без прокрутки: кружок 32, зазор 10, подпись мельче и в две строки. */
+@media (min-width: 1280px) {
+  :where(.hb) .steps--path { --path-d: 32px; --path-gap: 10px; --path-pad: 3px; grid-auto-columns: minmax(0, 1fr); overflow-x: visible; background: none; }
+  :where(.hb) .steps--path .step { gap: 6px; }
+  :where(.hb) .steps--chain.steps--path .step::before { font-size: var(--hb-fs-cap); }
+  :where(.hb) .steps--path h3 { font-size: var(--hb-fs-cap); line-height: 16px; }
+  :where(.hb) .steps--path .step > small { font-size: 11px; line-height: 14px; }
+}
+/* кнопка в заголовке шага: сброс системного вида, подпись остаётся заголовком */
+:where(.hb) .path__go { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: center; cursor: pointer; }
+:where(.hb) .path__go:hover { text-decoration: underline; text-underline-offset: 3px; }
+:where(.hb) .path__go:focus-visible { outline: var(--hb-ring); outline-offset: var(--hb-ring-off); border-radius: var(--hb-r-xs); }
+:where(.hb) .steps--path .is-todo h3 { color: var(--hb-ink-3); }
+:where(.hb) .steps--path .is-err h3 { color: var(--hb-err); }
+
+/* ---------- .now: карточка «Что сделать сейчас» ----------
+   Чего нет в ките: .panel - просто плоская плашка. Нужна плашка с цветной кромкой по состоянию хода
+   (мой ход, ход чужой, ждём, стоп, готово). */
+:where(.hb) .now { display: grid; gap: var(--hb-sp-4); border-inline-start: 5px solid var(--hb-accent); }
+:where(.hb) .now--theirs { border-inline-start-color: var(--hb-control); }
+:where(.hb) .now--wait { border-inline-start-color: var(--hb-warn); }
+:where(.hb) .now--halt { border-inline-start-color: var(--hb-err); }
+:where(.hb) .now--done { border-inline-start-color: var(--hb-ok); }
+:where(.hb) .now__main { display: grid; gap: var(--hb-sp-3); align-content: start; min-width: 0; }
+:where(.hb) .now__eye { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hb-sp-2); }
+
+/* ---------- .steps--time: состояния ленты денег по заказу ----------
+   Чего нет в ките: лента .steps--time кита рисует одинаковые точки. Нужно различать «сделано», «идёт сейчас» и «ещё не наступило»,
+   как у .steps--chain (.is-done, .is-cur, .is-todo). Тексты и линия берутся из кита. */
+:where(.hb) .steps--time .step.is-done::before { border-color: var(--hb-accent); background: var(--hb-accent); }
+:where(.hb) .steps--time .step.is-cur::before { width: 14px; height: 14px; left: -1px; top: 4px; border-width: 3px; box-shadow: 0 0 0 4px var(--hb-tint); }
+:where(.hb) .steps--time .step.is-todo::before { border-color: var(--hb-control); }
+:where(.hb) .steps--time .step.is-todo { color: var(--hb-ink-3); }
+:where(.hb) .steps--time .step h3 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hb-sp-2); }
+
+/* ---------- .alarm: красная полоса тревоги «остановите расходы» ----------
+   Чего нет в ките: .notice - обычная плашка в строку. Тревога должна читаться как тревога с первого взгляда:
+   толстая красная кромка слева, крупный заголовок, таймер и кнопки рядом. После отключения рекламы полоса серая (.alarm--done). */
+:where(.hb) .alarm { border-inline-start: 6px solid var(--hb-err); align-items: flex-start; }
+:where(.hb) .alarm > .stack, :where(.hb) .alarm > div { min-width: 0; flex: 1; display: grid; gap: var(--hb-sp-2); }
+:where(.hb) .alarm .notice__t { font-size: var(--hb-fs-card); line-height: 26px; }
+:where(.hb) .alarm--done { border-inline-start-color: var(--hb-control); }
+
+/* ---------- .phase / .lanes / .lane: «Запуск - Работа - Закрытие» и параллельные дорожки ----------
+   Чего нет в ките: степпер у кита один (линейный). Нужны три фазы, а во второй - дорожки, которые идут одновременно:
+   у каждой роль (иконка и имя), состояние, счётчики и бейдж «нужно действие». Строится на .panel/.pill/.avatar кита. */
+:where(.hb) .phase { display: grid; gap: var(--hb-sp-3); }
+:where(.hb) .phase__t { margin: 0; font-size: var(--hb-fs-cap); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--hb-ink-3); }
+:where(.hb) .lanes { display: grid; gap: var(--hb-sp-3); grid-template-columns: minmax(0, 1fr); }
+:where(.hb) .lane { display: grid; grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) auto; grid-template-areas: "id st a" "id n n" "id x x"; gap: var(--hb-sp-2) var(--hb-sp-4); align-items: center; align-content: start; padding: var(--hb-sp-4); border: 1px solid var(--hb-line); border-radius: var(--hb-r-m); background: var(--hb-paper); min-width: 0; }
+:where(.hb) .lane--need { border-color: var(--hb-warn); box-shadow: inset 4px 0 0 var(--hb-warn); }
+:where(.hb) .lane__id { grid-area: id; align-self: start; display: flex; align-items: center; gap: var(--hb-sp-3); }
+:where(.hb) .lane__id > span:last-child { display: grid; line-height: 20px; }
+:where(.hb) .lane__id small { color: var(--hb-ink-3); font-size: var(--hb-fs-cap); }
+:where(.hb) .lane__st { grid-area: st; }
+:where(.hb) .lane__a { grid-area: a; }
+:where(.hb) .lane__n { grid-area: n; display: flex; flex-wrap: wrap; gap: var(--hb-sp-2); }
+:where(.hb) .lane__n:empty, :where(.hb) .lane__a:empty { display: none; }
+:where(.hb) .lane__x { grid-area: x; display: grid; gap: var(--hb-sp-2); }
+@media (max-width: 899px) { :where(.hb) .lane { grid-template-columns: minmax(0, 1fr); grid-template-areas: "id" "st" "a" "n" "x"; } }
+
+/* мини-цепочка по сделке: «комиссия пришла - начислено - запланировано - одобрено - выплачено» */
+:where(.hb) .mchains { display: grid; gap: var(--hb-sp-3); margin: 0; padding: 0; list-style: none; }
+:where(.hb) .mchains > li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+:where(.hb) .mchain { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; font-size: var(--hb-fs-cap); }
+:where(.hb) .mchain li { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: var(--hb-r-pill); border: 1px solid var(--hb-line); color: var(--hb-ink-3); }
+:where(.hb) .mchain li + li::before { content: "\2192"; margin-inline-start: -2px; margin-inline-end: 6px; color: var(--hb-ink-3); }
+:where(.hb) .mchain li.is-done { background: var(--hb-tint); border-color: var(--hb-tint); color: var(--hb-ink); }
+:where(.hb) .mchain li.is-cur { border-color: var(--hb-accent); color: var(--hb-ink); font-weight: 600; }
+/* короткий ряд шагов «Закрытие» (2 шага): без минимальной ширины длинного пути */
+:where(.hb) .steps--short { grid-auto-columns: minmax(0, 220px); overflow-x: visible; background: none; }
+
+/* ---------- .q: очередь задач роли («Что сделать сейчас») ----------
+   Чего нет в ките: .disclose - сворачиваемый блок без рамки и без акцента. Карточка задачи: рамка, срок в заголовке,
+   у главной задачи (.q--big) заголовок крупнее. Содержимое - обычные классы кита. */
+:where(.hb) .q { border: 1px solid var(--hb-line); border-radius: var(--hb-r-m); background: var(--hb-paper); padding: var(--hb-sp-3) var(--hb-sp-4); }
+:where(.hb) .q[open] { border-color: var(--hb-control); }
+:where(.hb) .q > summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hb-sp-2) var(--hb-sp-3); cursor: pointer; }
+:where(.hb) .q__t { font-weight: 600; }
+:where(.hb) .q--big > summary { font-size: var(--hb-fs-h3); line-height: 1.3; }
+:where(.hb) .q > .stack { margin-top: var(--hb-sp-3); }
+
+/* заголовок секции списка: название и счётчик рядом, пояснение справа */
+:where(.hb) .hh { display: inline-flex; align-items: center; gap: var(--hb-sp-3); }
+
+/* ---------- Дорожка как сворачиваемая строка: имя, состояние, главный счётчик; тело раскрывается по нажатию ----------
+   Развёрнута только дорожка, где есть ход текущей роли. Остальное - в одну строку. */
+:where(.hb) .lane--d { display: block; padding: 0; }
+:where(.hb) .lane__sum { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hb-sp-2) var(--hb-sp-4); padding: var(--hb-sp-3) var(--hb-sp-4); cursor: pointer; list-style: none; }
+:where(.hb) .lane__sum::-webkit-details-marker { display: none; }
+:where(.hb) .lane__sum .lane__id { min-width: 200px; }
+:where(.hb) .lane__sum .lane__st { flex: 1 1 200px; min-width: 0; }
+:where(.hb) .lane__chev { margin-inline-start: auto; transition: transform .15s; }
+:where(.hb) .lane--d[open] > .lane__sum .lane__chev { transform: rotate(180deg); }
+:where(.hb) .lane__body { display: grid; gap: var(--hb-sp-3); padding: 0 var(--hb-sp-4) var(--hb-sp-4); }
+
+
+:where(.hb) .lane__body > .lane__n, :where(.hb) .lane__body > .lane__x { grid-area: auto; }

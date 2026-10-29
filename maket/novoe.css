@@ -1,0 +1,13 @@
+/* novoe.css - ТОЛЬКО служебное макета. Всё, что есть в ките dev (steps--path, now, alarm, phase/lane, mchain, q, hh, lane--d и др.),
+   лежит в css/hb-kab-mp.css (копия src/styles/hb/hb-kab-mp.css) и здесь не повторяется. Своих hex нет, всё на переменных кита. */
+
+/* только макет: верхняя панель показа (в продукте её нет). Кнопки и переключатели внутри - классы кита (.seg, .btn, .badge). */
+:where(.hb) .mk-bar { position: sticky; top: 0; z-index: var(--hb-z-bar); display: grid; gap: var(--hb-sp-2); padding: var(--hb-sp-3) var(--hb-sp-4); background: var(--hb-glass); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-bottom: 1px dashed var(--hb-control); }
+/* только макет */
+:where(.hb) .mk-bar__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--hb-sp-3); }
+/* только макет */
+:where(.hb) .mk-bar .seg { flex-wrap: wrap; }
+/* только макет */
+:where(.hb) .mk-bar__end { margin-inline-start: auto; }
+/* только макет: список «Сторож Meta» в панели показа стоит в строке по содержимому, а не на всю ширину */
+:where(.hb) .mk-bar .cs { width: auto; min-width: 240px; }

@@ -1,0 +1,15 @@
+/*
+ * Добавки к hb-kab.css для страниц группы 6-4 (админка, /admin/projects ... /admin/tech-alerts). Источник: gruppa-6-4.css
+ * макетов. Все селекторы под корнем `:where(.hb)`, как у сгенерированного hb-kab.css. Это кандидаты в расширение кита
+ * (README-6-4.md, «Свой CSS»); пока их там нет, живут отдельным файлом, как hb-kab-6-1.css.
+ */
+
+/* 1. Вкладки Bitrix24 со значком: у [role="tab"] кита нет flex, значок прижимался к подписи без зазора (те же gap 6px и выравнивание, что у .tabs__list > a в kab). */
+:where(.hb) .tabs__list [role="tab"]:has(> .ic) { display: inline-flex; align-items: center; gap: 6px; }
+
+/* 2. Диагностика Bitrix24 (.lrows--wrap): kab режет заголовок строки .lrow__b > b многоточием, на 375 терялся смысл. Перенос только у списков с этим классом. */
+:where(.hb) .lrows--wrap .lrow__b > b { white-space: normal; }
+
+/* 3. Таблица источников SEO (.tbl--ref): колонка «Реф.» держит идентификатор источника одним словом (в ките строчный code переносится где угодно), заголовкам разрешён перенос, иначе на 1440 колонка «Действия» уезжает за прокрутку. */
+:where(.hb) .tbl--ref code { overflow-wrap: normal; }
+:where(.hb) .tbl--ref thead th { white-space: normal; }

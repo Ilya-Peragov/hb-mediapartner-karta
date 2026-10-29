@@ -1,0 +1,41 @@
+/*
+ * Добавки к hb-kab.css для страниц группы 6-3 (админка, /admin ... /admin/platform-guide). Источник: gruppa-6-3.css
+ * макетов (README-6-3.md, «Свой CSS»). Все селекторы под корнем `:where(.hb)`, как у сгенерированного hb-kab.css.
+ * Это кандидаты в расширение кита; пока их там нет, живут отдельным файлом, как hb-kab-3b.css и hb-kab-6-1.css.
+ */
+
+/* 1. Строка-ссылка .shares--links a в ките 36 px; на телефоне цель нажатия не ниже 44 px (обзор, источники регистраций).
+   Строка с провалом на странице - настоящая кнопка (клавиатура, Пробел), а не a[role=button] макета: те же колонки и вид, что у .shares--links a. */
+:where(.hb) .shares--links button { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 3em; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 0 8px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+:where(.hb) .shares--links button:hover { background: var(--hb-tint); }
+:where(.hb) .shares--links button[aria-expanded="true"] { background: var(--hb-sel-bg); }
+@media (max-width: 639px) { :where(.hb) .shares--links :is(a, button) { min-height: 44px; } }
+
+/* 2. Причина отказа источника в плитке без числа содержит неразрывные идентификаторы (sc-domain:..., длинные URL). */
+:where(.hb) .stat small, :where(.hb) .stat .note { overflow-wrap: anywhere; }
+
+/* 3. Счётчик секции словами вместе с заголовком и шевроном шире экрана 375: переносится текст заголовка (счётчик
+   стоит внутри него), а шеврон остаётся справа. Прежний перенос всей строки summary (flex-wrap) ронял шеврон
+   длинного вопроса отдельной строкой под текст, у коротких он стоял справа (справка, гид по платформе, 13.10.2026). */
+:where(.hb) .faq--card summary > :not(.ic, .badge) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+:where(.hb) .faq--card summary > :is(.ic, .badge) { flex: none; }
+
+/* 4. Узел реферальной сети (значок уровня, имя, почта, счётчики) в ките не переносится: узел переносится по частям. */
+:where(.hb) .tree summary, :where(.hb) .tree .tree__leaf { flex-wrap: wrap; }
+
+/* 5. Кнопка-строка .lrow, где подпись и есть данные (доля словами, источники, папки): строка переносится, а не обрезается многоточием. */
+:where(.hb) .lrow--wrap .lrow__b > b, :where(.hb) .lrow--wrap .lrow__b > span { overflow: visible; text-overflow: clip; white-space: normal; }
+
+/* 6. Очередь реквизитов получателей: одиннадцать колонок из кода; отступ 8 px и кегль 13 px, чтобы кнопка «Открыть» не уходила за край (вместе с .tbl--wrap-head из hb-kab-6-1.css). */
+:where(.hb) .tbl--wrap-tight :is(th, td) { padding-inline: 8px; font-size: 13px; }
+
+/* 7. Текст сообщения в переписке карточки агента хранит переводы строк (WhatsApp, Telegram): пузырь их сохраняет, как прежний `whitespace-pre-wrap`. */
+:where(.hb) .msg__b { white-space: pre-wrap; }
+
+/* 8. Доли админки (SharesList, провал «Инструменты за период»): пояснение под именем строки (small.note) - своей строкой, а не впритык к имени («Агентские лидыбыло 0»).
+   .shares--stack на телефоне: имя и число в первой строке, полоса второй строкой на всю ширину - иначе подпись зажата в треть строки и рвётся на 3-4 строки. */
+:where(.hb) .shares li > span > .note { display: block; margin-top: 2px; }
+@media (max-width: 639px) {
+  :where(.hb) .shares--stack li, :where(.hb) .shares--stack :is(a, button) { grid-template-columns: minmax(0, 1fr) 3em; row-gap: 6px; }
+  :where(.hb) .shares--stack .shares__bar { grid-column: 1 / -1; grid-row: 2; }
+}

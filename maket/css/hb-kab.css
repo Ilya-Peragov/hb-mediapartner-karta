@@ -1,0 +1,725 @@
+/*
+ * СГЕНЕРИРОВАНО: node scripts/hb2-kit-css-build.mjs --kab <путь к kab/hb-kab.css>. Руками не
+ * править: правка делается в расширении кита и приходит сюда пересборкой. Правила переноса
+ * те же, что у hb.css (шапка скрипта); подключается только вместе с hb.css.
+ * Источник: kab/hb-kab.css, sha256 a76bf26ea8309921ef339db9f94c9c1054e335dac3f939a4f78fe299b1dc8a8a.
+ */
+/* Housebook kit, расширение для кабинетов и админки: hb-kab.css. Подключается после hb.css и берёт только его токены.
+   Ярусы «каркас» (К1-К5) и «массовые» (М1-М28) реестра opis/PROBELY-kita.md. Класс В - модификатор или часть компонента кита
+   (.badge--err, .drawer--bottom, .phead--kab, .stat--ok, .empty--restricted), класс А - новый класс там, где в ките основы нет.
+   Тёмная тема селекторами html.dusk X, :root[data-theme="dark"] X, как в hb.css. Телефон до 899 px, как в ките.
+   Витрина: kab/kit-kabinet.html, перечень и решения: kab/README-kab.md. */
+
+/* ---------- К1-К3 оболочка .kab: боковое меню .kab__side, шапка телефона .kab__top, нижняя навигация .kab__bar ----------
+   Вид переключает ширина самой оболочки (контейнер kab, порог 900 как у кита): на странице это ширина экрана, в витрине - ширина рамки.
+   --kab-h высота оболочки (на странице экран, в витрине рамка), --kab-vh высота липкого бокового меню */
+:where(.hb) .kab { container: kab / inline-size; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; min-height: var(--hb-kab-h, 100dvh); background: var(--hb-page); }
+:where(.hb) .kab__side { grid-area: 1 / 1 / 4 / 2; position: sticky; top: 0; display: flex; flex-direction: column; width: 256px; height: var(--hb-kab-vh, 100dvh); border-inline-end: 1px solid var(--hb-line); background: var(--hb-paper); }
+:where(.hb) .kab__head { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: var(--hb-top-h); padding: 0 8px 0 16px; border-bottom: 1px solid var(--hb-line); }
+:where(.hb) .kab__main { grid-area: 2 / 2; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hb-sp-5); align-content: start; width: 100%; max-width: calc(var(--hb-wrap) + 2 * var(--hb-gutter)); min-width: 0; padding: var(--hb-sp-6) var(--hb-gutter) 64px; }
+:where(.hb) .kab__foot { display: grid; gap: 8px; padding: 12px; border-top: 1px solid var(--hb-line); }
+:where(.hb) .kab__foot .note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline: 12px; }
+:where(.hb) .kab__row { display: flex; align-items: center; gap: 8px; } /* язык и «Выйти» в подвале меню */
+:where(.hb) .kab__row > .btn { margin-inline-start: auto; }
+/* карточка человека: аватар, имя, роль; кнопкой открывает смену кабинета */
+:where(.hb) .kab__me { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: var(--hb-h-touch); padding: 10px 12px; border: 0; border-radius: var(--hb-r-m); background: none; color: var(--hb-ink-2); font: inherit; text-align: start; text-decoration: none; }
+:where(.hb) .kab__side > .kab__me { margin: 12px 12px 0; background: var(--hb-sunken); }
+:where(.hb) button.kab__me { cursor: pointer; } :where(.hb) button.kab__me:hover { background: var(--hb-line); }
+:where(.hb) .kab__me > span:not(.avatar) { display: grid; flex: 1; min-width: 0; }
+:where(.hb) .kab__me b, :where(.hb) .kab__me small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:where(.hb) .kab__me b { font-size: var(--hb-fs-ui); line-height: 20px; font-weight: 600; color: var(--hb-ink); }
+:where(.hb) .kab__me small { font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-2); }
+:where(.hb) .kab__me > .ic { color: var(--hb-ink-3); }
+/* меню разделов: группы с подписью, пункт 44 с иконкой 20, счётчик .badge--n, точка .badge--dot; текущий по aria-current, как в оглавлении кита */
+:where(.hb) .knav { display: grid; align-content: start; gap: 16px; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px; scrollbar-width: thin; }
+:where(.hb) .knav ul { display: grid; gap: 2px; }
+:where(.hb) .knav, :where(.hb) .knav ul { grid-template-columns: minmax(0, 1fr); }
+:where(.hb) .knav__t { padding: 0 12px 6px; font: 600 var(--hb-fs-min)/16px var(--font-display); letter-spacing: .12em; text-transform: uppercase; color: var(--hb-ink-3); }
+:where(.hb) .knav a { display: flex; align-items: center; gap: 12px; min-height: var(--hb-h-touch); padding: 0 12px; border-radius: var(--hb-r-m); font-size: var(--hb-fs-ui); line-height: 20px; font-weight: 500; color: var(--hb-ink-2); text-decoration: none; transition: background-color var(--hb-dur-1), color var(--hb-dur-1); }
+:where(.hb) .knav a > span:not(.badge) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:where(.hb) .knav a > .ic { color: var(--hb-ink-3); }
+:where(.hb) .knav a:hover { background: var(--hb-sunken); color: var(--hb-ink); }
+:where(.hb) .knav a[aria-current="page"] { background: var(--hb-sel-bg); color: var(--hb-sel-fg); font-weight: 600; }
+:where(.hb) .knav a[aria-current="page"] > .ic { color: var(--hb-sel-fg); }
+:where(.hb) .kab__top, :where(.hb) .kab__bar { display: none; }
+/* шапка телефона: смена кабинета слева, колокол и язык справа; липнет сверху, 56 (не больше 15% экрана 375x812) */
+:where(.hb) .kab__top { grid-area: 1 / 2; position: sticky; top: 0; z-index: var(--hb-z-sticky); align-items: center; gap: 4px; min-height: 56px; padding: env(safe-area-inset-top, 0px) 8px 0 4px; border-bottom: 1px solid var(--hb-line); background: var(--hb-glass); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+:where(.hb) .kab__top > .kab__me { flex: 1; padding: 6px 8px; }
+:where(.hb) .kab__top .top__lang { min-width: var(--hb-h-touch); height: var(--hb-h-touch); }
+/* нижняя навигация: 4 пункта и «Ещё», иконка 20 и подпись 12; липнет снизу, учитывает вырез экрана */
+:where(.hb) .kab__bar { grid-area: 3 / 2; position: sticky; bottom: 0; z-index: var(--hb-z-bar); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; padding: 4px 4px max(4px, env(safe-area-inset-bottom)); border-top: 1px solid var(--hb-line); background: var(--hb-glass); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+:where(.hb) .kab__bar > :is(a, button) { position: relative; display: grid; justify-items: center; align-content: center; gap: 2px; min-width: 0; min-height: 52px; padding: 4px 2px; border: 0; border-radius: var(--hb-r-s); background: none; font: 500 var(--hb-fs-min)/16px var(--font-ui); color: var(--hb-ink-2); text-decoration: none; cursor: pointer; }
+:where(.hb) .kab__bar span:not(.badge) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:where(.hb) .kab__bar > [aria-current="page"] { color: var(--hb-accent-text); font-weight: 600; }
+:where(.hb) .kab__bar > [aria-current="page"]::before { content: ""; position: absolute; top: -4px; left: 50%; width: 32px; height: 3px; margin-left: -16px; border-radius: 0 0 var(--hb-r-xs) var(--hb-r-xs); background: var(--hb-accent); } /* метка текущего у верхней кромки панели */
+:where(.hb) .kab__bar > :is(a, button) > .badge { position: absolute; top: 2px; inset-inline-start: calc(50% + 4px); }
+@container kab (max-width: 899px) {
+  :where(.hb) .kab__side { display: none; }
+  :where(.hb) .kab__top { display: flex; }
+  :where(.hb) .kab__bar { display: grid; }
+  :where(.hb) .kab__main { gap: 20px; padding: 16px 16px 32px; } /* поле 16, как --gutter кита на телефоне */
+}
+/* свёртка меню: кнопка [data-rail] в шапке меню (hb-kab.js) ставит .kab--rail - колонка 72 из иконок; подписи остаются для чтения с экрана (обрезка как у .sr-only кита),
+   счётчик в углу иконки, группы делит линия вместо подписи. Логотип в свёрнутом меню не помещается и прячется, колокол и кнопка встают столбиком */
+:where(.hb) .kab__head > .brand { margin-inline-end: auto; } :where(.hb) .kab__head > .brand svg { height: 20px; } /* логотип 20 (как .top .brand на планшете): 16 + 133 + 4 + 44 + 4 + 44 + 8 = 253 из 256, кнопка свёртки целиком в колонке */
+:where(.hb) .kab--rail .kab__side { width: 72px; }
+:where(.hb) .kab--rail .kab__head { flex-direction: column; justify-content: center; gap: 4px; padding: 10px 0; }
+:where(.hb) .kab--rail .kab__head > .brand { display: none; }
+:where(.hb) .kab--rail :is(.knav a > span:not(.badge), .knav__t, .kab__me > span:not(.avatar), .kab__me > .ic, .kab__foot .note, .kab__row > .btn > span) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:where(.hb) .kab--rail .knav { gap: 12px; padding: 12px 8px; }
+:where(.hb) .kab--rail .knav > div + div { padding-top: 12px; border-top: 1px solid var(--hb-line); }
+:where(.hb) .kab--rail .knav a { position: relative; justify-content: center; padding: 0; }
+:where(.hb) .kab--rail .knav a > .badge { position: absolute; top: 3px; inset-inline-start: calc(50% + 2px); }
+:where(.hb) .kab--rail .kab__side > .kab__me { justify-content: center; margin: 12px 8px 0; padding: 10px 0; }
+:where(.hb) .kab--rail .kab__foot { padding: 12px 8px; }
+:where(.hb) .kab--rail .kab__row { flex-direction: column; } :where(.hb) .kab--rail .kab__row > .btn { margin: 0; padding: 0; width: var(--hb-h-touch); min-height: var(--hb-h-touch); }
+/* до показа меню: заставка .kab__boot, логотип пульсирует, пока читаются роль и кабинет; редирект, «приостановлен», «нет записи партнёра» - .empty кита (М4) в .kab__main */
+:where(.hb) .kab__boot { display: grid; place-items: center; min-height: var(--hb-kab-h, 100dvh); background: var(--hb-page); }
+:where(.hb) .kab__boot > .brand svg { height: 28px; animation: hb-kab-boot 1.2s var(--hb-ease) infinite alternate; }
+@keyframes hb-kab-boot { from { opacity: .35; } }
+
+/* ---------- К1, К4: бейдж-счётчик .badge--n (9+), точка .badge--dot (--pulse пульсирует, «Гид»), счётчик на кнопке-иконке ---------- */
+:where(.hb) .badge--n { justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--hb-r-pill); font: 600 var(--hb-fs-min)/1 var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: 0; text-transform: none; }
+:where(.hb) .badge--n:not(.badge--muted, .badge--err) { background: var(--hb-accent); color: var(--hb-on-accent); }
+:where(.hb) .badge--n.badge--err { background: var(--hb-err); color: var(--hb-on-accent); box-shadow: none; } /* критичные (админка): --on-accent на --err 6.9:1 днём и 7.26:1 в «Сумерках» */
+:where(.hb) .btn > .badge--n { position: absolute; top: 0; inset-inline-end: 0; box-shadow: 0 0 0 2px var(--hb-paper); }
+:where(.hb) .btn:has(> .badge--n) { position: relative; }
+:where(.hb) .badge--dot { width: 8px; height: 8px; padding: 0; border-radius: 50%; background: var(--hb-accent); }
+:where(.hb) .badge--pulse { animation: hb-kab-pulse 1.6s var(--hb-ease) infinite; }
+@keyframes hb-kab-pulse { 0% { box-shadow: 0 0 0 0 var(--hb-accent); } 70%, 100% { box-shadow: 0 0 0 6px transparent; } }
+
+/* ---------- К4 уведомления: dialog.drawer с ul.ntf; строка: иконка .panel__i, заголовок, текст в 2 строки, время, точка непрочитанного ---------- */
+:where(.hb) .drawer__body > .ntf { margin-inline: -20px; }
+:where(.hb) .ntf > li + li { border-top: 1px solid var(--hb-line); }
+:where(.hb) .ntf__a { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 20px; color: var(--hb-ink-2); text-decoration: none; }
+:where(.hb) a.ntf__a:hover { background: var(--hb-sunken); }
+:where(.hb) .ntf__a > .panel__i { grid-row: span 3; }
+:where(.hb) .ntf__t { display: flex; align-items: center; gap: 8px; font-size: var(--hb-fs-ui); line-height: 20px; font-weight: 600; color: var(--hb-ink); }
+:where(.hb) .ntf__a > time { font-size: var(--hb-fs-cap); line-height: 20px; color: var(--hb-ink-3); white-space: nowrap; }
+:where(.hb) .ntf__b { grid-column: 2 / -1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: var(--hb-fs-small); line-height: 20px; }
+:where(.hb) .ntf__a:not(.is-new) .ntf__t { font-weight: 500; } /* прочитанное тише, непрочитанное с точкой .badge--dot */
+@media (max-width: 479px) { /* узко (320-479): «Прочитать все» уходит строкой под заголовок, крестик остаётся справа от заголовка, ничего не обрезается */
+  :where(.hb) .drawer__head:has(+ .drawer__body > .ntf) { flex-wrap: wrap; row-gap: 0; }
+  :where(.hb) .drawer__head:has(+ .drawer__body > .ntf) > h2 { flex: 1 0 calc(100% - 64px); }
+  :where(.hb) .drawer__head:has(+ .drawer__body > .ntf) > .btn:not(.x) { order: 1; margin-inline-start: -16px; }
+}
+
+/* ---------- К5 шапка страницы в оболочке: .phead--kab без полосы и полей; H1 по шкале H2 (24/32), кнопки .phead__acts справа от заголовка в .phead__row ---------- */
+:where(.hb) .phead--kab { z-index: auto; padding: 0; background: none; }
+:where(.hb) .phead--kab > .wrap { max-width: none; margin: 0; gap: 12px; }
+:where(.hb) .phead--kab h1 { max-width: none; font-size: var(--hb-fs-h2); line-height: var(--hb-lh-h2); }
+:where(.hb) .phead__row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+:where(.hb) .phead__row > .phead__main { flex: 1 1 240px; gap: 4px; }
+@media (max-width: 899px) { :where(.hb) .phead__row > .phead__acts { flex: 1 1 100%; } :where(.hb) .phead__row > .phead__acts > .btn:not(.btn--icon) { flex: 1 1 0; } }
+
+/* ---------- М1 тур-подсказки: окно .tour у элемента [data-kab-tour] (data-tour и data-guide сайта не трогаются) (окно интерфейса п.9.11: полоса 5 слева, радиус 12), подсветка .is-tour; ставит hb-kab.js ---------- */
+:where(.hb) .tour { position: fixed; z-index: var(--hb-z-pop); display: grid; gap: 8px; width: min(340px, calc(100vw - 32px)); padding: 16px 18px; border: 1px solid var(--hb-line); border-inline-start: 5px solid var(--hb-accent); border-radius: var(--hb-r-m); background: var(--hb-paper); box-shadow: var(--hb-e-pop); color: var(--hb-ink-2); font-size: var(--hb-fs-small); line-height: 21px; }
+:where(.hb) .tour__n { font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-3); }
+:where(.hb) .tour__t { font: 600 var(--hb-fs-card)/var(--hb-lh-card) var(--font-display); color: var(--hb-ink); }
+:where(.hb) .tour__t:focus { outline: none; }
+:where(.hb) .tour__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+:where(.hb) .tour__foot > .btn--link { margin-inline-end: auto; min-height: var(--hb-h-touch); }
+:where(.hb) .is-tour { outline: 2px solid var(--hb-accent); outline-offset: -2px; }
+
+/* ---------- М2 таблица данных: строка инструментов .tbar над .tbl; строка-ссылка .tbl--link; колонка действий .acts; выбор строк .sel ---------- */
+:where(.hb) .tbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+:where(.hb) .tbar > .search { flex: 1 1 240px; max-width: 420px; }
+:where(.hb) .tbar__end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-inline-start: auto; }
+:where(.hb) .tbl--link tbody tr { position: relative; }
+:where(.hb) .tbl--link tbody tr > :is(:first-child:not(.sel), .sel + *) > a::after { content: ""; position: absolute; inset: 0; } /* вся строка ведёт по ссылке первой ячейки данных: клавиатура и средняя кнопка мыши работают как у ссылки */
+:where(.hb) .tbl--link tbody tr:has(a:focus-visible) > * { background: var(--hb-sunken); }
+:where(.hb) .tbl .acts { position: relative; z-index: 1; width: 1%; white-space: nowrap; text-align: end; } /* над растянутой ссылкой строки */
+:where(.hb) .tbl .acts .btn + .btn { margin-inline-start: 4px; }
+:where(.hb) .tbl .sel { position: relative; z-index: 1; width: 1%; padding-inline-end: 0; }
+:where(.hb) .tbl tbody tr:has(> .sel :checked) > * { background: var(--hb-sel-bg); }
+@media (max-width: 899px) { :where(.hb) .tbar > .search { flex-basis: 100%; max-width: none; } :where(.hb) .tbar__end { margin-inline-start: 0; } }
+@media (max-width: 639px) { /* карточки .tbl--stack: выбор в углу карточки, заголовком остаётся первая ячейка данных */
+  :where(.hb) .tbl--stack .acts { width: auto; text-align: end; white-space: normal; } /* две кнопки действий в карточке переносятся, а не выходят за рамку */
+  :where(.hb) .tbl--stack td[data-label]:has(> .cell)::before { float: none; display: block; max-width: none; margin: 0 0 6px; } /* правка в ячейке .cell (поле и кнопки) не помещается рядом с подписью: подпись над ней */
+  :where(.hb) .tbl--stack td > .cell { justify-content: flex-end; }
+  :where(.hb) .tbl--stack tbody tr:has(> .sel) { padding-inline-start: 56px; }
+  :where(.hb) .tbl--stack tbody .sel { position: absolute; top: 14px; inset-inline-start: 12px; width: auto; padding: 0; border: 0; }
+  :where(.hb) .tbl--stack tbody .sel + :is(th, td):not([data-label]) { font-weight: 600; color: var(--hb-ink); text-align: left; }
+}
+/* сортировка карточек на телефоне .ksort: .field с .select над .tbl--stack (SortSelect сайта), на десктопе сортирует шапка таблицы; мини-линия .stat__spark (М3) в ячейке */
+:where(.hb) .ksort { display: none; }
+@media (max-width: 639px) { :where(.hb) .ksort { display: grid; } }
+:where(.hb) td > .stat__spark { display: inline-block; width: 96px; height: 24px; vertical-align: middle; }
+
+/* ---------- М3 плитка KPI: кнопка-плитка button.stat открывает .drawer «откуда число»; светофор --ok --warn --err; мини-линия .stat__spark; нет данных --none ---------- */
+:where(.hb) button.stat { position: relative; width: 100%; font: inherit; text-align: start; cursor: pointer; transition: border-color var(--hb-dur-1), box-shadow var(--hb-dur-2); }
+:where(.hb) button.stat:hover { border-color: var(--hb-control); box-shadow: var(--hb-e2); }
+:where(.hb) button.stat > span:first-child { padding-inline-end: 24px; } /* место под значок «откуда число» */
+:where(.hb) .stat__go.ic { position: absolute; top: 16px; inset-inline-end: 16px; width: var(--hb-ic-s); height: var(--hb-ic-s); color: var(--hb-ink-3); }
+:where(.hb) .stat--ok, :where(.hb) .stat--warn, :where(.hb) .stat--err { border-inline-start-width: 5px; }
+:where(.hb) .stat--ok { border-inline-start-color: var(--hb-ok); } :where(.hb) .stat--warn { border-inline-start-color: var(--hb-warn); } :where(.hb) .stat--err { border-inline-start-color: var(--hb-err); }
+:where(.hb) .stat__spark { display: block; width: 100%; height: 32px; color: var(--hb-accent); overflow: visible; }
+:where(.hb) .stat__spark polyline { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+:where(.hb) .stat--none b { font-size: var(--hb-fs-num-s); line-height: 1.2; color: var(--hb-ink-3); letter-spacing: 0; } /* «Нет данных» словами, а не ноль */
+:where(.hb) .stat b, :where(.hb) .stat .stat__d { font-variant-numeric: tabular-nums; } /* цифры плитки одной ширины: у .stat b кита этого нет, а .stat .stat__d кита сбрасывает их шорткатом font */
+/* плашка в подписи плитки: правило кита .stat span (--ink-2) перекрашивало её текст, тон плашки возвращается.
+   Тёмный текст на оранжевом в обеих темах, как у .badge--warn кита: --ink днём и --page в «Сумерках» (оба #121517, 5.1:1 и выше) */
+:where(.hb) .stat span.badge--warn { color: var(--hb-ink); }
+html.dusk :where(.hb) .stat span.badge--warn, :root[data-theme="dark"] :where(.hb) .stat span.badge--warn { color: var(--hb-page); }
+:where(.hb) .stat span.badge--ok { color: var(--hb-accent-text); } :where(.hb) .stat span.badge--muted { color: var(--hb-ink-3); } :where(.hb) .stat span.badge--err { color: var(--hb-err); }
+
+/* ---------- М4 нет доступа: .empty--restricted (замок, причина, куда обратиться); загрузка и ошибка экрана - .empty со .spinner и .empty--error кита ---------- */
+:where(.hb) .empty--restricted { border-style: solid; border-color: var(--hb-line); background: var(--hb-sunken); }
+
+/* ---------- М5 вкладки-ссылки раздела: nav.tabs__list > a[aria-current="page"], вид как у вкладки кита, без панелей; счётчик .badge--n.badge--muted ---------- */
+:where(.hb) .tabs__list > a { display: inline-flex; align-items: center; gap: 6px; min-height: var(--hb-h-touch); padding: 0 14px; border-bottom: 2px solid transparent; font-size: var(--hb-fs-ui); font-weight: 500; color: var(--hb-ink-2); text-decoration: none; white-space: nowrap; }
+:where(.hb) .tabs__list > a:hover { color: var(--hb-ink); }
+:where(.hb) .tabs__list > a[aria-current="page"] { border-bottom-color: var(--hb-accent); color: var(--hb-ink); }
+
+/* ---------- М6 загрузка файла: label.drop с input[type=file] на всю площадь (перетаскивание без скрипта), список .files; .thumb превью ---------- */
+:where(.hb) .drop { position: relative; display: grid; justify-items: center; gap: 6px; padding: var(--hb-sp-5); border: 1.5px dashed var(--hb-control); border-radius: var(--hb-r-l); background: var(--hb-paper); color: var(--hb-ink-2); font-size: var(--hb-fs-small); line-height: 20px; text-align: center; cursor: pointer; transition: border-color var(--hb-dur-1), background-color var(--hb-dur-1); }
+:where(.hb) .drop > input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+:where(.hb) .drop > .ic { width: var(--hb-ic-l); height: var(--hb-ic-l); color: var(--hb-accent-text); }
+:where(.hb) .drop b { font-weight: 600; color: var(--hb-ink); }
+:where(.hb) .drop:hover, :where(.hb) .drop.is-over { border-color: var(--hb-accent); background: var(--hb-tint); }
+:where(.hb) .drop:has(:focus-visible) { outline: var(--hb-ring); outline-offset: var(--hb-ring-off); }
+:where(.hb) .drop:has(:disabled) { border-style: solid; border-color: var(--hb-line); background: var(--hb-sunken); color: var(--hb-ink-3); cursor: not-allowed; } :where(.hb) .drop:has(:disabled) > .ic { color: var(--hb-ink-3); } :where(.hb) .drop > input:disabled { cursor: not-allowed; }
+:where(.hb) .field.is-err .drop { border-color: var(--hb-err); }
+:where(.hb) .files { display: grid; gap: 8px; }
+:where(.hb) .files > li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 8px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-m); background: var(--hb-paper); }
+:where(.hb) .files__b { display: grid; gap: 4px; min-width: 0; }
+:where(.hb) .files__b > b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--hb-fs-small); line-height: 20px; font-weight: 500; color: var(--hb-ink); }
+:where(.hb) .files__b .field__err { display: flex; }
+:where(.hb) .files > li.is-err { border-color: var(--hb-err); }
+:where(.hb) .files__acts { display: flex; gap: 2px; }
+:where(.hb) .thumb { display: grid; place-items: center; flex: none; width: 64px; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--hb-r-s); background: var(--hb-sunken); color: var(--hb-ink-3); }
+:where(.hb) .thumb--sq { width: 48px; aspect-ratio: 1; }
+:where(.hb) .thumb > img { width: 100%; height: 100%; object-fit: cover; }
+/* порядок и обложка: .files--cover - первая строка обложка (плашка .files__cover видна только у неё), кнопки «Выше»/«Ниже» как в М21; предпросмотр CSV .files__prev под строкой */
+:where(.hb) .files__cover { justify-self: start; }
+:where(.hb) .files--cover > li:not(:first-child) .files__cover { display: none; }
+:where(.hb) .files__prev { grid-column: 1 / -1; margin-top: 4px; }
+:where(.hb) .files__prev caption { padding: 8px 12px 6px; font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-3); text-align: start; }
+
+/* ---------- М8, М16 поле с копированием .copy: поле или блок кода и кнопки рядом; .qr рамка кода ---------- */
+:where(.hb) .copy { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; min-width: 0; }
+:where(.hb) .copy > :first-child { flex: 1 1 200px; min-width: 0; } /* узко: кнопка с подписью уходит под поле */
+:where(.hb) .copy > .input { text-overflow: ellipsis; }
+:where(.hb) .copy--code .input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+:where(.hb) .copy > .btn { flex: none; }
+:where(.hb) .copy > pre { white-space: pre; }
+/* QR тёмным по белому в обеих темах: сканер читает только такой; белый как у .btn--inv кита */
+:where(.hb) .qr { display: grid; place-items: center; width: 168px; aspect-ratio: 1; padding: 12px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-m); background: #FFFFFF; color: #121517; }
+:where(.hb) .qr > svg { width: 100%; height: 100%; }
+
+/* ---------- М9 график по дням: .lchart[data-lines] (рисует hb-kab.js), линия, вторая серия пунктиром, пропуски дней, легенда ---------- */
+:where(.hb) .lchart { display: grid; gap: 12px; min-width: 0; }
+:where(.hb) .lchart__leg { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-2); }
+:where(.hb) .lchart__leg span { display: inline-flex; align-items: center; gap: 8px; }
+:where(.hb) .lchart__leg i { width: 20px; height: 0; border-top: 2px solid var(--hb-accent); }
+:where(.hb) .lchart__leg i.is-2 { border-top: 2px dashed var(--hb-ink-3); }
+:where(.hb) .lchart svg { display: block; width: 100%; height: 220px; overflow: visible; }
+:where(.hb) .lchart__g { stroke: var(--hb-line); stroke-width: 1; }
+:where(.hb) .lchart__ax { fill: var(--hb-ink-3); font: 400 var(--hb-fs-min) var(--font-ui); font-variant-numeric: tabular-nums; }
+:where(.hb) .lchart__s { fill: none; stroke: var(--hb-accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+:where(.hb) .lchart__s.is-2 { stroke: var(--hb-ink-3); stroke-dasharray: 5 4; }
+:where(.hb) .lchart__gap { fill: var(--hb-sunken); }
+:where(.hb) .lchart__hit { fill: transparent; }
+:where(.hb) .lchart__hit.is-tip { fill: var(--hb-sunken); fill-opacity: .6; }
+html.dusk :where(.hb) .lchart__g, :root[data-theme="dark"] :where(.hb) .lchart__g { stroke: var(--hb-control); } /* N5: линия сетки 3.78:1 вместо line 1.89:1 */
+
+/* ---------- Столбик-прогноз .chart__c.is-forecast (правки 11.10.2026): столбик графика кита .chart[data-bars], значение которого расчётное, а не фактическое.
+   Штриховка и пунктирная кромка нефритом вместо сплошной заливки: отличим и без цвета. Класс ставит hb-kab.js по "fc": true в data-bars; .chart__key образец в подписи. ---------- */
+:where(.hb) .chart__c.is-forecast i, :where(.hb) .chart__c.is-forecast.is-max i { background: repeating-linear-gradient(135deg, var(--hb-accent) 0 2px, transparent 2px 8px); box-shadow: none; border: 2px dashed var(--hb-accent); border-bottom: 0; }
+html.dusk :where(.hb) .chart__c.is-forecast i, :root[data-theme="dark"] :where(.hb) .chart__c.is-forecast i { background: repeating-linear-gradient(135deg, var(--hb-accent) 0 2px, transparent 2px 8px); } /* кит в «Сумерках» заливает i цветом control (N5) */
+:where(.hb) .chart__key { display: inline-block; width: 18px; height: 10px; margin-inline-end: 8px; vertical-align: baseline; background: repeating-linear-gradient(135deg, var(--hb-accent) 0 2px, transparent 2px 8px); border: 2px dashed var(--hb-accent); border-bottom: 0; }
+
+/* ---------- М10 переписка: .chat (лента .chat__log, пузыри .msg по роли, строка ответа .chat__bar); два окна .convo (список тем + диалог) ---------- */
+:where(.hb) .chat { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 360px; overflow: hidden; border: 1px solid var(--hb-line); border-radius: var(--hb-r-xl); background: var(--hb-paper); }
+:where(.hb) .chat__log { display: grid; align-content: end; gap: 12px; padding: 16px; overflow-y: auto; background: var(--hb-page); }
+:where(.hb) .msg { display: grid; gap: 4px; justify-items: start; max-width: min(85%, 560px); }
+:where(.hb) .msg__b { padding: 10px 14px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l) var(--hb-r-l) var(--hb-r-l) var(--hb-r-xs); background: var(--hb-paper); color: var(--hb-ink); font-size: var(--hb-fs-ui); line-height: 22px; overflow-wrap: anywhere; }
+:where(.hb) .msg__m { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--hb-fs-min); line-height: 16px; color: var(--hb-ink-3); }
+:where(.hb) .msg--me { justify-self: end; justify-items: end; }
+:where(.hb) .msg--me .msg__b { border-color: transparent; border-radius: var(--hb-r-l) var(--hb-r-l) var(--hb-r-xs) var(--hb-r-l); background: var(--hb-tint); }
+:where(.hb) .msg--staff .msg__b { border-inline-start: 3px solid var(--hb-accent); } /* ответ команды выделен полосой акцента */
+:where(.hb) .msg--bot .msg__b { border-color: transparent; background: var(--hb-sunken); }
+:where(.hb) .msg--fail .msg__b { border-color: var(--hb-err); }
+:where(.hb) .msg--fail .msg__m { color: var(--hb-err); }
+:where(.hb) .chat__bar { display: flex; align-items: flex-end; gap: 8px; padding: 12px; border-top: 1px solid var(--hb-line); }
+:where(.hb) .chat__bar > .inwrap, :where(.hb) .chat__bar > .textarea { flex: 1; min-width: 0; }
+:where(.hb) .chat__bar .textarea { min-height: var(--hb-h-m); max-height: 160px; field-sizing: content; resize: none; } /* строка ответа растёт по тексту, а не стоит блоком */
+:where(.hb) .convo { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+/* М10 дальше: разметка в пузыре (абзацы, списки, код), вложения .msg__f, статус доставки иконкой и словом в .msg__m, «печатает» .msg--typing;
+   пусто и загрузка - .empty и .skel кита в ленте; над строкой ответа .chat__opts (канал ответа .seg кита, счётчик) и подсказки .chat__hints, оценка ответа [data-react] */
+:where(.hb) .msg__b > * + * { margin-top: 8px; }
+:where(.hb) .msg__b :is(ul, ol) { padding-inline-start: 1.25em; } :where(.hb) .msg__b ul { list-style: disc; } :where(.hb) .msg__b ol { list-style: decimal; }
+:where(.hb) .msg__b code { padding: 1px 5px; border-radius: var(--hb-r-xs); background: var(--hb-sunken); font: .9em ui-monospace, SFMono-Regular, Menlo, monospace; }
+:where(.hb) .msg__f { display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%; }
+:where(.hb) .msg__f > .thumb { width: 160px; }
+:where(.hb) .msg--me .msg__f { justify-content: flex-end; }
+:where(.hb) .msg__m > span { display: inline-flex; align-items: center; gap: 4px; } :where(.hb) .msg__m .is-read { color: var(--hb-accent-text); }
+:where(.hb) .msg--typing .msg__b { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; }
+:where(.hb) .msg--typing .msg__b > i { margin: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--hb-ink-3); animation: hb-kab-typing 1.2s infinite; }
+:where(.hb) .msg--typing .msg__b > i:nth-child(2) { animation-delay: .2s; } :where(.hb) .msg--typing .msg__b > i:nth-child(3) { animation-delay: .4s; }
+@keyframes hb-kab-typing { 0%, 60%, 100% { opacity: .3; } 30% { opacity: 1; } }
+:where(.hb) .chat__log:has(> .empty) { align-content: center; }
+:where(.hb) .chat__bar { flex-wrap: wrap; }
+:where(.hb) .chat__opts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; flex-basis: 100%; }
+:where(.hb) .chat__hints { display: flex; gap: 6px; flex-basis: 100%; overflow-x: auto; scrollbar-width: none; }
+:where(.hb) .chat__hints > .pill { flex: none; }
+:where(.hb) .empty > .chat__hints { max-width: 100%; } /* в .empty (justify-items: start) лента подсказок росла по содержимому и выходила за рамку; теперь прокручивается внутри */
+@media (max-width: 899px) { :where(.hb) .convo { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- М11, М20 поле с кнопкой внутри .inwrap: пароль с глазом, микрофон в .textarea (запись aria-pressed, расшифровка aria-busy, нет API - hidden) ---------- */
+:where(.hb) .inwrap { position: relative; min-width: 0; }
+:where(.hb) .inwrap > :is(.input, .textarea) { padding-inline-end: 52px; }
+:where(.hb) .inwrap > .btn { position: absolute; top: 2px; inset-inline-end: 2px; }
+:where(.hb) .inwrap > .input--s ~ .btn { top: -1px; } /* S 38: кнопка 40 по центру поля */
+
+/* ---------- М12 шторка снизу: dialog.drawer.drawer--bottom, ручка, до 80% высоты, тело прокручивается; Esc и фон закрывают (hb-ui.js) ---------- */
+:where(.hb) .drawer--bottom { inset: auto 0 0 0; width: min(100vw, 640px); height: auto; max-height: 80dvh; margin: auto auto 0; border-left: 0; border-top: 1px solid var(--hb-line); border-radius: var(--hb-r-xxl) var(--hb-r-xxl) 0 0; }
+:where(.hb) .drawer--bottom[open] { animation-name: hb-kab-sheet-in; }
+@keyframes hb-kab-sheet-in { from { transform: translateY(24px); opacity: 0; } }
+:where(.hb) .drawer--bottom > .drawer__head { position: relative; padding-top: 20px; }
+:where(.hb) .drawer--bottom > .drawer__head::before { content: ""; position: absolute; top: 8px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: var(--hb-r-pill); background: var(--hb-control); }
+:where(.hb) .drawer--bottom > :last-child { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+/* список пунктов в шторке «Ещё» и в шторке «Поделиться»: строки 48 с иконкой */
+:where(.hb) .sheet-list { display: grid; margin-inline: -20px; }
+:where(.hb) .sheet-list :is(a, button) { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--hb-h-m); padding: 0 20px; border: 0; background: none; font: 500 var(--hb-fs-ui)/20px var(--font-ui); color: var(--hb-ink); text-align: start; text-decoration: none; cursor: pointer; }
+:where(.hb) .sheet-list :is(a, button):hover { background: var(--hb-sunken); }
+:where(.hb) .sheet-list :is(a, button) > span:not(.badge) { flex: 1; }
+:where(.hb) .sheet-list .ic { color: var(--hb-ink-3); }
+:where(.hb) .sheet-list > li.is-sep { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hb-line); }
+
+/* ---------- М14 период и поле даты: .period = список пресетов + поле периода .dpick; .dpick = .input кита с кнопкой календаря (.inwrap) и панелью-поповером .dpick__pop (hb-kab.js) ----------
+   Панель на поверхности поповеров кита (как .cs__pop): top layer, координаты ставит скрипт; до 899 px шторка снизу, как .fdd__pop. Выбрано - акцент кита (как .fbtn__n), диапазон - --sel-bg, сегодня - рамка --control.
+   Родной input[type=date] остаётся в ките и в старых макетах, пока их не перевели на .dpick */
+:where(.hb) .period { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+:where(.hb) .period > .field:first-child { flex: 0 1 220px; }
+:where(.hb) .period > fieldset { flex: 0 1 360px; min-width: 0; }
+:where(.hb) .period .range2 .input { flex: 1; width: 0; min-width: 0; } /* старая пара родных дат до перевода на .dpick: 130 px кита мало */
+:where(.hb) .input[type="date"] { min-width: 0; font-variant-numeric: tabular-nums; }
+:where(.hb) .input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
+:where(.hb) .dpick { display: flex; flex-wrap: wrap; gap: 8px 6px; min-width: 0; }
+:where(.hb) .dpick > .inwrap { flex: 1 1 170px; }
+:where(.hb) .dpick .input { font-variant-numeric: tabular-nums; }
+:where(.hb) .dpick__pop { position: fixed; inset: auto; margin: 0; height: auto; overflow: visible; z-index: var(--hb-z-pop); display: grid; gap: 8px; width: 328px; max-width: calc(100vw - 16px); padding: 12px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: var(--hb-paper); color: var(--hb-ink); box-shadow: var(--hb-e-pop); }
+:where(.hb) .dpick__pop[hidden] { display: none; }
+:where(.hb) .dpick__hd { display: flex; align-items: center; gap: 6px; }
+:where(.hb) .dpick__hd > .select { flex: 1 1 0; min-width: 0; min-height: var(--hb-h-s); padding: 0 28px 0 10px; border-radius: var(--hb-r-s); font-size: var(--hb-fs-small); background-position: right 8px center; background-size: 16px; }
+:where(.hb) .dpick__hd > .select[data-dp="year"] { flex: 0 0 84px; }
+:where(.hb) .dpick__hd > .btn { flex: none; width: var(--hb-h-s); min-height: var(--hb-h-s); padding: 0; }
+:where(.hb) .dpick__hd > .btn[aria-disabled="true"] { opacity: .4; cursor: not-allowed; }
+:where(.hb) .dpick__r { display: grid; grid-template-columns: repeat(7, 1fr); }
+:where(.hb) .dpick__r > [role="columnheader"] { padding: 6px 0; text-align: center; font: 600 var(--hb-fs-cap)/18px var(--font-ui); color: var(--hb-ink-3); }
+:where(.hb) .dpick__b { display: grid; gap: 2px 0; }
+:where(.hb) .dpick__c { min-width: 0; }
+:where(.hb) .dpick__c.is-in { background: var(--hb-sel-bg); }
+:where(.hb) .dpick__c.is-from { border-radius: var(--hb-r-s) 0 0 var(--hb-r-s); } :where(.hb) .dpick__c.is-to { border-radius: 0 var(--hb-r-s) var(--hb-r-s) 0; }
+:where(.hb) .dpick__d { display: grid; place-items: center; width: 100%; height: 40px; padding: 0; border: 1px solid transparent; border-radius: var(--hb-r-s); background: none; color: var(--hb-ink); font: 500 var(--hb-fs-small)/1 var(--font-ui); font-variant-numeric: tabular-nums; cursor: pointer; }
+:where(.hb) .dpick__d:hover { background: var(--hb-sunken); }
+:where(.hb) .dpick__d[aria-current="date"] { border-color: var(--hb-control); }
+:where(.hb) .dpick__d:focus-visible { outline: var(--hb-ring); outline-offset: 1px; }
+:where(.hb) .dpick__c[aria-selected="true"] > .dpick__d { background: var(--hb-accent); border-color: var(--hb-accent); color: var(--hb-on-accent); }
+:where(.hb) .dpick__d[aria-disabled="true"] { color: var(--hb-ink-3); text-decoration: line-through; cursor: not-allowed; }
+:where(.hb) .dpick__d[aria-disabled="true"]:hover { background: none; }
+:where(.hb) .dpick__hint { margin: 0; }
+:where(.hb) .dpick__t { display: flex; align-items: center; gap: 6px; }
+:where(.hb) .dpick__t > .select { flex: 0 0 84px; min-height: var(--hb-h-s); padding: 0 28px 0 10px; border-radius: var(--hb-r-s); font-size: var(--hb-fs-small); background-position: right 8px center; background-size: 16px; }
+:where(.hb) .dpick__ft { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding-top: 8px; border-top: 1px solid var(--hb-line); }
+:where(.hb) .dpick__ft > [data-dp="close"] { margin-left: auto; }
+@media (max-width: 899px) {
+  :where(.hb) .dpick__pop { inset: auto 0 0 0; width: 100%; max-width: none; border-width: 1px 0 0; border-radius: var(--hb-r-xxl) var(--hb-r-xxl) 0 0; padding: 16px 16px max(16px, env(safe-area-inset-bottom)); max-height: 92dvh; overflow-y: auto; }
+  :where(.hb) .dpick__pop::backdrop { background: var(--hb-scrim); }
+  :where(.hb) .dpick__hd > .btn { width: var(--hb-h-touch); min-height: var(--hb-h-touch); }
+  :where(.hb) .dpick__hd > .select, :where(.hb) .dpick__t > .select { min-height: var(--hb-h-touch); }
+  :where(.hb) .dpick__d { height: var(--hb-h-touch); }
+  :where(.hb) .dpick__ft > .btn { min-height: var(--hb-h-touch); }
+}
+:where(.hb) .dpick[data-inline] > .dpick__pop { position: static; flex: 1 1 100%; width: 100%; max-width: 328px; max-height: none; padding: 12px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); box-shadow: none; overflow: visible; } /* data-inline: панель в потоке, не поповер */
+@media (max-width: 899px) { :where(.hb) .dpick[data-inline] > .dpick__pop { padding-inline: 0; border-inline-width: 0; } :where(.hb) .dpick[data-inline] > .dpick__pop > :is(.dpick__hd, .dpick__t, .dpick__hint, .dpick__ft) { margin-inline: 8px; } } /* на 375 семь столбцов по 44 */
+
+/* ---------- М15 свежесть данных .fresh: точка (свежо, --stale устарело, --fail сбой) + время + источник; смысл и словами ---------- */
+:where(.hb) .fresh { font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-3); } /* строкой текста: точка в начале, перенос как у обычной фразы */
+:where(.hb) .fresh::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-inline-end: 8px; border-radius: 50%; background: var(--hb-ok); vertical-align: 1px; }
+:where(.hb) .fresh--stale::before { background: var(--hb-warn); }
+:where(.hb) .fresh--fail::before { background: var(--hb-err); }
+:where(.hb) .fresh b { font-weight: 500; color: var(--hb-ink-2); }
+
+/* ---------- М17 оболочка входа .auth: логотип и карточка .form по центру, без шапки сайта ---------- */
+:where(.hb) .auth { display: grid; place-items: center; min-height: var(--hb-kab-h, 100dvh); padding: var(--hb-sp-6) var(--hb-gutter); background: var(--hb-page); }
+:where(.hb) .auth__in { display: grid; justify-items: center; gap: var(--hb-sp-5); width: min(100%, 440px); }
+:where(.hb) .auth__in > .form { width: 100%; max-width: none; }
+:where(.hb) .auth__in > .brand svg { height: 28px; }
+:where(.hb) .auth__or { display: flex; align-items: center; gap: 12px; font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-3); } /* «или» между входом через Google и формой */
+:where(.hb) .auth__or::before, :where(.hb) .auth__or::after { content: ""; flex: 1; border-top: 1px solid var(--hb-line); }
+
+/* ---------- М18 воронка: .shares.shares--funnel; переход между ступенями .shares__cv; пустой трек .shares__bar--none пунктиром ---------- */
+:where(.hb) .shares--funnel li, :where(.hb) .shares--funnel.shares--links a { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 4.5em; }
+:where(.hb) .shares--funnel .shares__bar { height: 12px; }
+:where(.hb) .shares--funnel li.shares__cv { display: block; padding-inline-start: calc((100% - 20px - 4.5em) / 3 + 10px); font-size: var(--hb-fs-min); line-height: 16px; color: var(--hb-ink-3); }
+:where(.hb) .shares__bar--none { background: none; box-shadow: inset 0 0 0 1.5px var(--hb-control); -webkit-mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 10px); mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 10px); }
+@media (max-width: 639px) { :where(.hb) .shares--funnel li, :where(.hb) .shares--funnel.shares--links a { grid-template-columns: minmax(0, 1fr) 4.5em; } :where(.hb) .shares--funnel .shares__bar { grid-column: 1 / -1; grid-row: 2; } :where(.hb) .shares--funnel li.shares__cv { padding-inline-start: 0; } :where(.hb) .shares--funnel.shares--links li.shares__cv { padding-inline-start: 8px; } }
+
+/* ---------- М19 сумма с валютой: data.money[value][data-cur] (формат Intl по коду валюты, hb-kab.js); --err нет валюты или она не та ---------- */
+:where(.hb) .money { white-space: nowrap; font-variant-numeric: tabular-nums; }
+:where(.hb) .money--err { color: var(--hb-err); text-decoration: underline wavy var(--hb-err); text-underline-offset: 3px; }
+
+/* ---------- М21 список с перестановкой .olist: номер, превью .thumb, текст, «Выше»/«Ниже»/«Убрать» ---------- */
+:where(.hb) .olist { display: grid; gap: 8px; counter-reset: olist; }
+:where(.hb) .olist > li { display: grid; grid-template-columns: 1.5em auto minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: var(--hb-paper); counter-increment: olist; }
+:where(.hb) .olist > li::before { content: counter(olist); font: 600 var(--hb-fs-small)/1 var(--font-ui); color: var(--hb-ink-3); }
+:where(.hb) .olist__b { display: grid; gap: 2px; min-width: 0; font-size: var(--hb-fs-small); line-height: 20px; }
+:where(.hb) .olist__b > b { font-size: var(--hb-fs-ui); font-weight: 600; color: var(--hb-ink); }
+:where(.hb) .olist__acts { display: flex; gap: 2px; }
+:where(.hb) .olist__why { padding: 6px 10px; border-radius: var(--hb-r-s); background: var(--hb-sunken); color: var(--hb-ink-2); }
+:where(.hb) .olist__why > span:first-child { font-weight: 600; color: var(--hb-ink); } /* «Почему подходит:» */
+@media (max-width: 639px) { :where(.hb) .olist > li { grid-template-columns: 1.5em auto minmax(0, 1fr); } :where(.hb) .olist__acts { grid-column: 1 / -1; justify-content: flex-end; } }
+
+/* ---------- М22 бейдж ошибки .badge--err: красный контур, текст красным (отозвано, просрочено, ошибка); голубого варианта нет: синего в гамме нет ---------- */
+:where(.hb) .badge--err { background: var(--hb-paper); color: var(--hb-err); box-shadow: inset 0 0 0 1px var(--hb-err); }
+
+/* ---------- М23 повторяемая группа полей .rgroup[data-repeat]: строки .rgroup__row, добавить, убрать, порядок; минимум и максимум в data-min, data-max ---------- */
+:where(.hb) .rgroup { display: grid; gap: 8px; }
+:where(.hb) .rgroup__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px 12px; padding: 12px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-m); background: var(--hb-paper); }
+:where(.hb) .rgroup__f { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px 12px; }
+:where(.hb) .rgroup__acts { display: flex; gap: 2px; }
+@media (max-width: 639px) { :where(.hb) .rgroup__row { grid-template-columns: minmax(0, 1fr); } :where(.hb) .rgroup__acts { justify-content: flex-end; } }
+
+/* ---------- М24 канбан .board: колонки .board__col по статусам (--sys служебная), карточки .panel--s, прокрутка вбок внутри доски ---------- */
+:where(.hb) .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(240px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+:where(.hb) .board__col { display: grid; grid-template-columns: minmax(0, 1fr); overflow-wrap: anywhere; align-content: start; gap: 8px; min-height: 200px; padding: 8px; border-radius: var(--hb-r-l); background: var(--hb-sunken); scroll-snap-align: start; }
+/* полоса прокрутки доски видна всегда (на macOS системная прячется): последняя колонка не должна выглядеть обрезанной случайно */
+:where(.hb) .board::-webkit-scrollbar { height: 8px; } :where(.hb) .board::-webkit-scrollbar-thumb { border-radius: var(--hb-r-pill); background: var(--hb-control); }
+:where(.hb) .board__col--sys { border: 1px dashed var(--hb-control); background: none; }
+:where(.hb) .board__h { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; padding: 0 6px; font: 600 var(--hb-fs-small)/20px var(--font-display); color: var(--hb-ink); }
+:where(.hb) .board__col > .note { padding: 16px 6px; text-align: center; }
+:where(.hb) .board[data-move="on"] .panel--s { cursor: grab; }
+:where(.hb) .board__col.is-over { outline: 2px dashed var(--hb-accent); outline-offset: -2px; }
+:where(.hb) .board .panel--s > .btn { justify-self: start; margin-top: 4px; } /* «Перенести в…» в карточке: меню колонок .pop[popover] кита, для клавиатуры и телефона */
+/* В9-К1: длинная строка без пробелов (имя, почта, бюджет, URL, трасса тревоги) переносится внутри карточки и ячейки таблицы, а не раздувает колонку и не выходит за край. Кнопки и бейджи не трогаем: узкая кнопка стала бы столбиком букв */
+:where(.hb) :is(.panel, .check, .podium) :is(h2, h3, h4, p, b, dd, small, .note, span:not(.badge, .pill, .tag, .chip, .avatar)) { overflow-wrap: anywhere; }
+:where(.hb) .tbl :is(td, tbody th) { overflow-wrap: anywhere; }
+:where(.hb) .pop > .sheet-list { margin-inline: -16px; }
+:where(.hb) .pop > .note + .sheet-list { margin-top: 6px; }
+@media (max-width: 639px) { :where(.hb) .board { grid-auto-columns: minmax(260px, 85%); } }
+
+/* ---------- М25 лента событий: .steps--time кита; цитата .step__q (исходная заметка), плотная длинная лента .steps--dense ---------- */
+:where(.hb) .step__q { margin: 4px 0 0; padding: 8px 12px; border-inline-start: 3px solid var(--hb-control); border-radius: 0 var(--hb-r-s) var(--hb-r-s) 0; background: var(--hb-sunken); font-size: var(--hb-fs-small); line-height: 20px; color: var(--hb-ink-2); }
+:where(.hb) .steps--dense .step { padding-bottom: 14px; font-size: var(--hb-fs-small); line-height: 20px; }
+
+/* ---------- М26 потоковый ответ ИИ .gen: пусто (подсказка из data-empty), идёт ответ (aria-busy, каретка), готово ---------- */
+:where(.hb) .gen { min-height: 120px; padding: 16px 18px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: var(--hb-paper); color: var(--hb-ink); font-size: var(--hb-fs-ui); line-height: 22px; white-space: pre-wrap; overflow-wrap: anywhere; }
+:where(.hb) .gen:empty::before { content: attr(data-empty); color: var(--hb-ink-3); }
+:where(.hb) .gen[aria-busy="true"]::after { content: ""; display: inline-block; width: 2px; height: 1.1em; margin-inline-start: 2px; vertical-align: -.2em; background: var(--hb-accent); animation: hb-kab-caret 1s steps(1) infinite; }
+@keyframes hb-kab-caret { 50% { opacity: 0; } }
+
+/* ---------- М27 строка-карточка записи .lrow в списке .lrows: аватар или .thumb, имя, «страна · стадия», бейдж и время, стрелка ---------- */
+:where(.hb) .lrows { display: grid; overflow: hidden; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: var(--hb-paper); }
+:where(.hb) .lrows > li + li { border-top: 1px solid var(--hb-line); }
+:where(.hb) .lrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; min-height: 64px; padding: 10px 16px; color: var(--hb-ink-2); text-decoration: none; }
+:where(.hb) .lrow:has(> .ic:last-child) { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+:where(.hb) .lrow:has(> .lrow__b:first-child) { grid-template-columns: minmax(0, 1fr) auto; } /* без аватара: имя тянется (1fr), бейдж и кнопка справа; иначе имя из nowrap забирало всю ширину, а бейдж и кнопка уходили за строку */
+:where(.hb) .lrow:has(> .lrow__b:first-child):has(> .ic:last-child) { grid-template-columns: minmax(0, 1fr) auto auto; }
+:where(.hb) a.lrow:hover, :where(.hb) button.lrow:hover { background: var(--hb-sunken); }
+:where(.hb) button.lrow { width: 100%; border: 0; background: none; font: inherit; text-align: start; cursor: pointer; }
+:where(.hb) .lrow[aria-current="true"] { background: var(--hb-sel-bg); }
+:where(.hb) .lrow__b { display: grid; gap: 2px; min-width: 0; }
+:where(.hb) .lrow__b > b, :where(.hb) .lrow__b > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:where(.hb) .lrow__b > b { font-size: var(--hb-fs-ui); line-height: 20px; font-weight: 600; color: var(--hb-ink); }
+:where(.hb) .lrow__b > span { font-size: var(--hb-fs-small); line-height: 20px; }
+:where(.hb) .lrow__b > p { font-size: var(--hb-fs-small); line-height: 20px; color: var(--hb-ink-2); }
+:where(.hb) .lrow__m { display: grid; justify-items: end; gap: 4px; font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-3); white-space: nowrap; }
+:where(.hb) .lrow > .ic:last-child { color: var(--hb-ink-3); }
+@media (max-width: 479px) { /* узко: бейдж и время уходят строкой под имя, чтобы не резать имя и цену */
+  :where(.hb) .lrow, :where(.hb) .lrow:has(> .ic:last-child) { grid-template-columns: auto minmax(0, 1fr); }
+  :where(.hb) .lrow > .ic:last-child { display: none; }
+  :where(.hb) .lrow__m { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  :where(.hb) .lrow > .btn { grid-column: 2; justify-self: start; } /* «Добавить» из пула М21 под текстом */
+  :where(.hb) .lrow:has(> .lrow__b:first-child), :where(.hb) .lrow:has(> .lrow__b:first-child):has(> .ic:last-child) { grid-template-columns: minmax(0, 1fr); }
+  :where(.hb) .lrow__b:first-child ~ .lrow__m, :where(.hb) .lrow__b:first-child ~ .btn, :where(.hb) .lrow__b:first-child ~ .progress { grid-column: 1; } /* без аватара под текстом на всю ширину */
+}
+
+/* ---------- М28 рамка встраивания .frame: переключатель вариантов .seg, рамка .frame__box нужной пропорции, постер до загрузки .frame__poster ---------- */
+:where(.hb) .frame { display: grid; gap: 12px; min-width: 0; }
+:where(.hb) .frame > .seg { justify-self: start; }
+:where(.hb) .frame__box { position: relative; width: 100%; aspect-ratio: var(--hb-frame-ar, 16 / 9); overflow: hidden; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: var(--hb-sunken); }
+:where(.hb) .frame__box--mail { --hb-frame-ar: auto; width: min(100%, 600px); height: 520px; margin-inline: auto; }
+:where(.hb) .frame__box > iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+:where(.hb) .frame__poster { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; width: 100%; border: 0; background: var(--hb-sunken); font: inherit; color: var(--hb-ink); cursor: pointer; }
+:where(.hb) .frame__poster > .badge { background: var(--hb-paper); color: var(--hb-ink); }
+:where(.hb) .frame__box:has(> .empty) { display: grid; min-width: 0; overflow: visible; } /* ошибка в потоке: рамка держит пропорцию и растёт, если текст не влез */
+:where(.hb) .frame__box > .empty { margin: 16px; align-content: center; }
+
+/* ================= ярус «редкие» Р1-Р40: класс В модификатором кита, класс А новым классом; поведение в hb-kab.js ================= */
+/* Р1 секция с запоминанием: details[data-keep] в .faq--card или .disclose кита; счётчик - .badge в summary */
+:where(.hb) :is(.faq, .disclose) summary > .badge { margin-inline-start: 8px; }
+/* Р2 поиск с выпадающим списком: .suggest = .search кита + панель .pop со списком .cs__list и пунктами .cs__opt кита */
+:where(.hb) .suggest { position: relative; min-width: 0; }
+:where(.hb) .suggest__pop { position: absolute; inset-inline: 0; top: calc(100% + 6px); z-index: var(--hb-z-pop); width: auto; max-width: none; padding: 8px; }
+:where(.hb) .suggest__pop[hidden] { display: none; }
+:where(.hb) .suggest__pop .cs__opt { display: grid; gap: 2px; padding-inline-start: 12px; }
+:where(.hb) .suggest__pop .cs__opt small { font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-3); }
+:where(.hb) .suggest__st { display: flex; align-items: center; gap: 8px; padding: 10px 12px; color: var(--hb-ink-3); }
+:where(.hb) .suggest__st.is-err { color: var(--hb-err); }
+/* Р4 опасное действие: красная кнопка, текст цветом бумаги (днём белый, в сумерках тёмный по светло-красному) */
+:where(.hb) .btn--danger { border-color: var(--hb-err); background: var(--hb-err); color: var(--hb-paper); }
+:where(.hb) .btn--danger:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--hb-err); background: color-mix(in srgb, var(--hb-err) 86%, var(--hb-ink)); }
+:where(.hb) .btn--danger.btn--quiet { border-color: transparent; background: none; color: var(--hb-err); }
+:where(.hb) .btn--danger.btn--quiet:where(:not(:disabled)):hover { background: var(--hb-sunken); }
+/* Р8 поток денег: шаги в ряд со стрелкой между ними, на телефоне столбиком */
+:where(.hb) .flow { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 32px; counter-reset: flow; }
+:where(.hb) .flow > li { position: relative; display: grid; align-content: start; gap: 4px; padding: 14px 16px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: var(--hb-paper); font-size: var(--hb-fs-small); line-height: 20px; color: var(--hb-ink-2); }
+:where(.hb) .flow > li > b { font-size: var(--hb-fs-ui); color: var(--hb-ink); }
+:where(.hb) .flow > li > strong { font: 600 var(--hb-fs-lead)/24px var(--font-ui); font-variant-numeric: tabular-nums; color: var(--hb-ink); }
+:where(.hb) .flow > li + li::before { content: ""; position: absolute; inset-inline-start: -26px; top: 50%; width: 20px; height: 20px; margin-top: -10px; background: var(--hb-ink-3); -webkit-mask: var(--hb-kab-arrow) center / contain no-repeat; mask: var(--hb-kab-arrow) center / contain no-repeat; }
+:where(.hb) .flow ul { display: grid; gap: 4px; margin-top: 6px; }
+:where(.hb) .flow ul li { display: flex; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums; }
+:root { --hb-kab-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='m12 5 7 7-7 7'/%3E%3C/svg%3E"); } /* маска стрелки, цвет даёт фон */
+@media (max-width: 899px) { :where(.hb) .flow { grid-auto-flow: row; gap: 28px; } :where(.hb) .flow > li + li::before { inset-inline-start: 50%; top: -24px; margin: 0 0 0 -10px; transform: rotate(90deg); } }
+/* Р9 дерево сети: вложенные details, линия уровня слева, счётчик .badge в summary */
+:where(.hb) .tree, :where(.hb) .tree ul { display: grid; gap: 4px; }
+:where(.hb) .tree ul { margin: 4px 0 0 18px; padding-inline-start: 12px; border-inline-start: 1px solid var(--hb-line); }
+:where(.hb) .tree summary, :where(.hb) .tree .tree__leaf { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 8px; border-radius: var(--hb-r-s); color: var(--hb-ink); cursor: pointer; list-style: none; }
+:where(.hb) .tree summary::-webkit-details-marker { display: none; }
+:where(.hb) .tree summary > .ic:first-child { color: var(--hb-ink-3); transition: transform var(--hb-dur-1); }
+:where(.hb) .tree details[open] > summary > .ic:first-child { transform: rotate(90deg); }
+:where(.hb) .tree summary:hover { background: var(--hb-sunken); }
+:where(.hb) .tree .tree__leaf { cursor: default; padding-inline-start: 32px; }
+:where(.hb) .tree small { margin-inline-start: auto; font-size: var(--hb-fs-cap); color: var(--hb-ink-3); font-variant-numeric: tabular-nums; }
+/* Р10 выбор точки: поле-схема (на странице под меткой карта библиотеки), метка .mpin кита, координаты полями */
+:where(.hb) .mpick { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: linear-gradient(var(--hb-line) 1px, transparent 1px) 0 0 / 40px 40px, linear-gradient(90deg, var(--hb-line) 1px, transparent 1px) 0 0 / 40px 40px, var(--hb-sunken); cursor: crosshair; touch-action: none; }
+:where(.hb) .mpick:focus-visible { outline: var(--hb-ring); outline-offset: var(--hb-ring-off); }
+:where(.hb) .mpick > .mpin { position: absolute; left: var(--hb-x, 50%); top: var(--hb-y, 50%); translate: -50% -50%; cursor: grab; }
+:where(.hb) .mpick > .mpin[hidden] { display: none; }
+:where(.hb) .mpick > .note { position: absolute; inset-inline: 12px; bottom: 10px; pointer-events: none; }
+:where(.hb) .mpick__xy { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+/* Р10б карта подборки .cpick: метки двух видов на поле-схеме (на странице поле - .cmap кита с Leaflet), кандидат .mpin--off полый, в подборке .mpin кита крупнее;
+   кнопка-метка .cpick__pin 44 открывает карточку .cpick__card «Добавить» / «Убрать»: на телефоне снизу поля, на широком слева, как в коде сайта. Рамка по крайним меткам (hb-kab.js) */
+:where(.hb) .mpin--off, :where(.hb) .cpick__pin[aria-pressed="false"] > .mpin { background: var(--hb-paper); border-color: var(--hb-ink-3); }
+:where(.hb) .cpick { container-type: inline-size; display: grid; gap: 12px; min-width: 0; } /* контейнер: высота поля от ширины колонки, без распирания на телефоне */
+:where(.hb) .cpick__map { container-type: inline-size; position: relative; height: max(300px, 56.25cqw); overflow: hidden; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: linear-gradient(var(--hb-line) 1px, transparent 1px) 0 0 / 40px 40px, linear-gradient(90deg, var(--hb-line) 1px, transparent 1px) 0 0 / 40px 40px, var(--hb-sunken); }
+:where(.hb) .cpick__pin { position: absolute; left: var(--hb-x, 50%); top: var(--hb-y, 50%); translate: -50% -50%; display: grid; place-items: center; width: var(--hb-h-touch); height: var(--hb-h-touch); padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+:where(.hb) .cpick__pin:focus-visible { outline: var(--hb-ring); outline-offset: -2px; }
+:where(.hb) .cpick__pin[aria-pressed="true"] > .mpin { width: 24px; height: 24px; }
+:where(.hb) .cpick__pin[aria-expanded="true"] { z-index: 1; } :where(.hb) .cpick__pin[aria-expanded="true"] > .mpin { box-shadow: 0 0 0 4px var(--hb-sel-bd); }
+:where(.hb) .cpick__card { position: absolute; z-index: 2; inset: auto 8px 8px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 4px 12px; padding: 12px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-m); background: var(--hb-paper); box-shadow: var(--hb-e-pop); font-size: var(--hb-fs-small); line-height: 20px; color: var(--hb-ink-2); }
+:where(.hb) .cpick__card[hidden] { display: none; }
+:where(.hb) .cpick__card > .thumb { grid-row: span 2; }
+:where(.hb) .cpick__card b { display: block; font-size: var(--hb-fs-ui); color: var(--hb-ink); }
+:where(.hb) .cpick__card .money, :where(.hb) .cpick__card [data-f="price"] { font-weight: 600; color: var(--hb-ink); font-variant-numeric: tabular-nums; }
+:where(.hb) .cpick__card > .btn--icon { grid-column: 3; grid-row: 1; margin: -6px -6px 0 0; }
+:where(.hb) .cpick__card > :last-child { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+@container (min-width: 640px) { :where(.hb) .cpick__card { inset: 12px auto auto 12px; width: 320px; } }
+:where(.hb) .cpick__leg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-2); }
+:where(.hb) .cpick__leg > span { display: inline-flex; align-items: center; gap: 8px; }
+/* Р11 липкая панель кабинета: .pbar кита в потоке .kab__main, на телефоне над нижней навигацией (--kab-bar-h) */
+:where(.hb) .pbar--kab { position: sticky; bottom: 0; left: auto; right: auto; justify-content: space-between; margin-inline: calc(-1 * var(--hb-gutter)); padding: 8px var(--hb-gutter); }
+:where(.hb) .pbar--kab > .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; min-width: 0; } :where(.hb) .pbar--kab > .chips > .pill { flex: none; }
+@container kab (max-width: 899px) { :where(.hb) .pbar--kab { bottom: var(--hb-kab-bar-h, 61px); margin-inline: -16px; padding-inline: 16px; } }
+/* Р13 доля строкой .kshare (круг 3: было .share, имя занято кнопкой «поделиться» .card__top .share кита): число и полоса .progress кита в ячейке таблицы */
+:where(.hb) .kshare { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+:where(.hb) .kshare > .progress { flex: 1; min-width: 48px; }
+:where(.hb) .kshare > span { min-width: 3.5em; text-align: end; font-variant-numeric: tabular-nums; }
+:where(.hb) .tbl .stat__d { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; font-variant-numeric: tabular-nums; } /* у кита цвет разницы только внутри .stat */
+:where(.hb) .tbl .stat__d--up { color: var(--hb-accent-text); } :where(.hb) .tbl .stat__d--down { color: var(--hb-err); }
+@media (max-width: 639px) { /* итог .tbl--stack: кит складывает только tbody, строка итога становится такой же карточкой */
+  :where(.hb) .tbl--stack tfoot { display: block; } :where(.hb) .tbl--stack tfoot tr { margin-top: 10px; padding: 6px 16px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: var(--hb-sunken); }
+  :where(.hb) .tbl--stack tfoot :is(th, td) { display: flow-root; padding: 10px 0; border: 0; border-bottom: 1px solid var(--hb-line); background: none; text-align: right; }
+  :where(.hb) .tbl--stack tfoot :is(th, td):last-child { border-bottom: 0; } :where(.hb) .tbl--stack tfoot th { font-weight: 600; text-align: left; }
+}
+/* Р14 общее сохранение формы на вкладках: панель .savebar липнет к низу, пока есть несохранённое */
+:where(.hb) .savebar { position: sticky; bottom: 0; z-index: var(--hb-z-bar); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: var(--hb-paper); box-shadow: var(--hb-e2); }
+:where(.hb) .savebar[hidden] { display: none; }
+:where(.hb) .savebar > p { display: flex; align-items: center; gap: 8px; color: var(--hb-ink); }
+:where(.hb) .savebar > div { display: flex; gap: 8px; }
+:where(.hb) .tabs__list .ic--16 { margin-inline-start: 4px; color: var(--hb-ink-3); } /* замок у вкладки */
+/* Р15 подпись документа: текст версии в рамке с прокруткой */
+:where(.hb) .sign__doc { max-height: 180px; overflow: auto; padding: 12px 14px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-m); background: var(--hb-sunken); font-size: var(--hb-fs-small); line-height: 20px; color: var(--hb-ink-2); }
+:where(.hb) .sign__doc:focus-visible { outline: var(--hb-ring); outline-offset: var(--hb-ring-off); }
+/* HbDocReader: рамка документа с контролем «дочитано до конца» выше, чем рамка подписи: в окне переподтверждения текст читают, а не подписывают под ним */
+:where(.hb) .hb-docreader { max-height: min(46dvh, 420px); }
+/* Текст документа: ритм внутри рамки (md без .stack): отступ перед заголовком раздела, заголовок документа отделён от тела */
+:where(.hb) .hb-docreader:not(.stack) > * + * { margin-top: 8px; }
+:where(.hb) .hb-docreader:not(.stack) > h4 + .note { margin-top: 2px; }
+:where(.hb) .hb-docreader:not(.stack) > section { margin-top: 20px; }
+:where(.hb) .hb-docreader h5 { margin: 0; }
+:where(.hb) .hb-docreader__end { height: 1px; margin: 0; }
+:where(.hb) .hb-docreader__prog { display: flex; align-items: center; gap: 10px; }
+:where(.hb) .hb-docreader__bar { flex: 1 1 auto; height: 6px; border-radius: 3px; background: var(--hb-line); overflow: hidden; }
+:where(.hb) .hb-docreader__bar > span { display: block; height: 100%; background: var(--hb-accent); transition: width .15s linear; }
+/* Окно переподтверждения (HbDocGate): подвал с кнопками закреплён внизу окна, всё остальное (шапка, срок, версия, рамка текста, галка с кодом) лежит в одной прокручиваемой области .hb-docgate__scroll. Рамка текста берёт остаток высоты, но не ниже 200px: если места не хватает (телефон, шаг кода), листается область целиком, а кнопки остаются на виду. Прокрутку до конца по-прежнему считает рамка текста. */
+:where(.hb) .hb-docgate[open] { display: flex; flex-direction: column; overflow: hidden; }
+:where(.hb) .hb-docgate .modal__in { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; gap: 12px; }
+:where(.hb) .hb-docgate__scroll { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; gap: 10px; overflow: auto; overscroll-behavior: contain; }
+:where(.hb) .hb-docgate__scroll > * { flex: none; }
+:where(.hb) .hb-docgate__scroll:focus { outline: none; }
+:where(.hb) .hb-docgate .modal__body { display: contents; }
+:where(.hb) .hb-docgate .modal__foot { flex: none; }
+:where(.hb) .hb-docgate .hb-docreader { flex: 1 1 auto; min-height: 200px; max-height: none; }
+:where(.hb) .hb-docgate__act { display: grid; gap: 10px; }
+:where(.hb) .hb-docgate__act:empty { display: none; }
+:where(.hb) .hb-docgate__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+:where(.hb) .hb-docgate__otp { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+:where(.hb) .hb-docgate__otp > .field { flex: none; width: min(100%, 220px); }
+:where(.hb) .hb-docgate .notice { padding: 10px 14px; }
+:where(.hb) .hb-docgate__h:focus { outline: none; } /* заголовок берёт фокус программно (для скринридера), рамка вокруг него не нужна */
+@media (max-width: 639px) {
+  :where(.hb) .hb-docgate .modal__in { padding: 16px; gap: 10px; }
+  :where(.hb) .hb-docgate__lead { font-size: var(--hb-fs-small); line-height: 20px; }
+  :where(.hb) .hb-docgate .modal__foot { flex-direction: column-reverse; align-items: stretch; flex-wrap: nowrap; }
+  :where(.hb) .hb-docgate .modal__foot .btn { width: 100%; justify-content: center; }
+  /* Телефон: рамка текста не ниже половины экрана (было 200px при тексте в сотни экранов), листается пальцем внутри рамки; остаток окна (галка, код) лежит ниже в общей прокрутке. */
+  :where(.hb) .hb-docgate .hb-docreader { min-height: max(200px, 55dvh); -webkit-overflow-scrolling: touch; touch-action: pan-y pinch-zoom; }
+}
+/* Р16 одноразовый код: одно поле на 6 цифр, крупно и с разрядкой */
+:where(.hb) .otp { width: min(100%, 220px); font: 600 var(--hb-fs-h2)/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .4em; text-align: center; font-variant-numeric: tabular-nums; }
+/* Р17 слайды 9:16 и 4:5: ряд со snap, кадр выбран обводкой */
+:where(.hb) .slides { display: grid; grid-auto-flow: column; grid-auto-columns: 160px; gap: 12px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
+:where(.hb) .slide { position: relative; display: grid; align-content: end; gap: 6px; aspect-ratio: 9 / 16; padding: 12px; overflow: hidden; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: linear-gradient(180deg, var(--hb-sunken), var(--hb-tint)); color: var(--hb-ink); text-align: start; font: 600 var(--hb-fs-small)/18px var(--font-display); scroll-snap-align: start; cursor: pointer; }
+:where(.hb) .slide--45 { aspect-ratio: 4 / 5; }
+:where(.hb) .slide[aria-pressed="true"] { outline: 2px solid var(--hb-accent); outline-offset: 2px; }
+:where(.hb) .slide > small { position: absolute; top: 10px; inset-inline-start: 12px; font: 500 var(--hb-fs-min)/16px var(--font-ui); font-variant-numeric: tabular-nums; color: var(--hb-ink-3); }
+/* Р18 демо-окно: шаги подсвечиваются по кругу; пауза кнопкой [data-pause], при reduced-motion стоят */
+:where(.hb) .demo { display: grid; gap: 8px; padding: 16px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: var(--hb-paper); }
+:where(.hb) .demo > li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--hb-r-m); color: var(--hb-ink-2); animation: hb-kab-demo 9s infinite; animation-delay: calc(var(--hb-i) * 3s - 9s); }
+:where(.hb) .demo.is-paused > li { animation-play-state: paused; }
+@keyframes hb-kab-demo { 0%, 30% { background: var(--hb-sel-bg); color: var(--hb-ink); } 34%, 100% { background: none; } }
+/* Р19 различия: метка строки +, ~, -, = и счётчики бейджами кита */
+:where(.hb) .diff { display: grid; overflow: hidden; border: 1px solid var(--hb-line); border-radius: var(--hb-r-l); background: var(--hb-paper); font-size: var(--hb-fs-small); line-height: 20px; }
+:where(.hb) .diff > li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; padding: 8px 12px; border-inline-start: 3px solid transparent; color: var(--hb-ink); }
+:where(.hb) .diff > li + li { border-top: 1px solid var(--hb-line); }
+:where(.hb) .diff > li > b { font: 600 var(--hb-fs-ui)/20px ui-monospace, SFMono-Regular, Menlo, monospace; text-align: center; }
+:where(.hb) .diff > .diff__add { border-inline-start-color: var(--hb-accent); } :where(.hb) .diff__add > b { color: var(--hb-accent-text); }
+:where(.hb) .diff > .diff__del { border-inline-start-color: var(--hb-err); } :where(.hb) .diff__del > b { color: var(--hb-err); }
+:where(.hb) .diff > .diff__chg { border-inline-start-color: var(--hb-control); } /* «изменено» не статус предупреждения: нейтральная линия, оранжевый только у статусов */
+:where(.hb) .diff s { color: var(--hb-ink-3); }
+/* Р20 редактор: панель кнопок над полем, предпросмотр .prose кита в рамке */
+:where(.hb) .editor { display: grid; overflow: hidden; border: 1px solid var(--hb-control); border-radius: var(--hb-r-m); background: var(--hb-paper); }
+:where(.hb) .editor__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 4px; border-bottom: 1px solid var(--hb-line); background: var(--hb-sunken); }
+:where(.hb) .editor__bar > .seg { margin-inline-start: auto; }
+:where(.hb) .editor > .textarea { min-height: 200px; border: 0; border-radius: 0; }
+:where(.hb) .editor > .hb-prose { min-height: 200px; max-width: none; padding: 12px 14px; }
+:where(.hb) .editor > [hidden] { display: none; }
+/* Р21 шаги процесса: .steps--chain кита с состояниями; текущий aria-current="step", готов .is-done, ошибка .is-err */
+:root { --hb-kab-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E"); } /* i-check Lucide маской */
+/* готовый шаг: круг цвета акцента с вырезанной галочкой i-check (маска с исключением), знака из системного шрифта нет; под вырезом виден фон страницы, он и даёт цвет галочки */
+:where(.hb) .steps--chain .step.is-done::before { content: ""; border-color: var(--hb-accent); background: var(--hb-accent); -webkit-mask: var(--hb-kab-check) center / 20px no-repeat, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: var(--hb-kab-check) center / 20px no-repeat exclude, linear-gradient(#000 0 0); }
+:where(.hb) .steps--chain .step[aria-current="step"]::before { border: 2px solid var(--hb-accent); color: var(--hb-accent-text); }
+:where(.hb) .steps--chain .step.is-err::before { content: "!"; border-color: var(--hb-err); color: var(--hb-err); }
+:where(.hb) .steps--chain .step > small { font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-3); }
+:where(.hb) .steps--chain .step.is-err > small { color: var(--hb-err); }
+/* Р22 текущая ступень плана: .plan кита, у текущей li aria-current="step" */
+:where(.hb) .plan li[aria-current="step"] { background: var(--hb-sel-bg); box-shadow: inset 0 3px 0 var(--hb-accent); }
+:where(.hb) .plan li[aria-current="step"] span { color: var(--hb-ink); font-weight: 600; }
+/* Р23 список стран: .toc кита слева, на телефоне строка чипов */
+:where(.hb) .toc--side { position: static; }
+:where(.hb) .toc--side a { display: flex; justify-content: space-between; gap: 8px; }
+:where(.hb) .toc--side a small { font-size: var(--hb-fs-cap); color: var(--hb-ink-3); font-variant-numeric: tabular-nums; } /* без кегля small берёт браузерное smaller: 11,7 px */
+@media (max-width: 899px) {
+  :where(.hb) .toc--side { padding: 0; border: 0; background: none; }
+  :where(.hb) .toc--side ol { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  :where(.hb) .toc--side a { align-items: center; min-height: var(--hb-h-s); padding: 0 14px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-pill); background: var(--hb-paper); white-space: nowrap; }
+  :where(.hb) .toc--side a[aria-current="true"] { border-color: var(--hb-sel-bd); background: var(--hb-sel-bg); }
+}
+/* Р24 светофор срока ответа: полоса слева у .panel и слово в бейдже */
+:where(.hb) .panel[data-sla] { border-inline-start: 4px solid var(--hb-sla); }
+:where(.hb) .panel[data-sla="ok"] { --hb-sla: var(--hb-accent); } :where(.hb) .panel[data-sla="warn"] { --hb-sla: var(--hb-warn); } :where(.hb) .panel[data-sla="err"] { --hb-sla: var(--hb-err); }
+/* Р26 ряд плиток: иконка над подписью, на телефоне листается вбок */
+:where(.hb) .tiles { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(104px, 1fr); gap: 8px; overflow-x: auto; scrollbar-width: none; }
+:where(.hb) .tiles > .btn { flex-direction: column; gap: 6px; min-height: 84px; padding: 10px 8px; white-space: normal; text-align: center; font-size: var(--hb-fs-small); line-height: 18px; }
+/* Р27 очередь звонков: полоса срока у строки, просрочка красной полосой и словом */
+:where(.hb) .lrow > .progress { grid-column: 2 / -1; height: 4px; }
+:where(.hb) .lrow.is-late > .progress > i { background: var(--hb-err); }
+:where(.hb) .lrow.is-late .lrow__m { color: var(--hb-err); }
+/* Р28 правка в ячейке: значение и кнопка, в режиме правки поле и две кнопки; ошибка под полем */
+:where(.hb) .cell { display: flex; align-items: center; gap: 4px; min-width: 0; } :where(.hb) .cell > [data-v] { white-space: nowrap; }
+:where(.hb) .cell > .input { min-height: var(--hb-h-s); width: 9em; padding-inline: 10px; font-size: var(--hb-fs-ui); }
+/* ошибки вне .field (ячейка, поиск адреса, строка документа, плеер, оценка) видны сразу; прячет их атрибут hidden (в ките он сильнее) */
+:where(.hb) .cell + .field__err, :where(.hb) [data-geo] > .field__err, :where(.hb) .req > li > .field__err, :where(.hb) .audio > .field__err, :where(.hb) [data-react] + .field__err { display: flex; }
+:where(.hb) .cell + .field__err { margin-top: 4px; }
+/* Р30 подиум: места 2-1-3, высота ступени по месту */
+:where(.hb) .podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 8px; }
+:where(.hb) .podium > li { display: grid; justify-items: center; gap: 6px; text-align: center; font-size: var(--hb-fs-small); line-height: 20px; color: var(--hb-ink-2); }
+:where(.hb) .podium > li > b { color: var(--hb-ink); }
+:where(.hb) .podium > li > span:last-child { display: grid; place-items: center; width: 100%; height: var(--hb-h, 72px); border-radius: var(--hb-r-m) var(--hb-r-m) 0 0; background: var(--hb-sunken); font: 600 var(--hb-fs-num-s)/1 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--hb-ink); }
+:where(.hb) .podium > li:nth-child(1) { order: 2; --hb-h: 112px; } :where(.hb) .podium > li:nth-child(1) > span:last-child { background: var(--hb-tint); }
+:where(.hb) .podium > li:nth-child(2) { order: 1; --hb-h: 84px; } :where(.hb) .podium > li:nth-child(3) { order: 3; --hb-h: 64px; }
+/* Р31 лист A4: article.a4 - контейнер размеров (единицы cqw считаются от предка, поэтому сам лист их не берёт), div.a4__p - страница внутри.
+   На экране уменьшенная страница, текст в долях ширины листа, но не мельче 12 px (лист уже 462 px: текст чуть крупнее пропорции);
+   при печати 210 x 297 мм и разрыв страницы. Подвал .a4__foot прижат к низу листа */
+:where(.hb) .a4 { container-type: inline-size; display: grid; aspect-ratio: 210 / 297; width: min(100%, 560px); background: #FFFFFF; color: #121517; box-shadow: var(--hb-e2); } /* бумага белая и текст тёмный в обеих темах: так её напечатают */
+:where(.hb) .a4__p { display: flex; flex-direction: column; gap: 3cqw; padding: 8cqw; font-size: max(var(--hb-fs-min), 2.6cqw); line-height: 1.45; }
+:where(.hb) .a4 :is(h1, h2, p, table, th, td) { margin: 0; color: inherit; font-size: inherit; background: none; } /* заголовки и таблица кита берут цвет темы: на листе он свой */
+:where(.hb) .a4 h1 { font-size: 6cqw; line-height: 1.15; } :where(.hb) .a4 h2 { font-size: max(var(--hb-fs-cap), 3.6cqw); line-height: 1.2; } :where(.hb) .a4 th { font-weight: 600; } :where(.hb) .a4 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; } :where(.hb) .a4 td, :where(.hb) .a4 th { padding: 1.2cqw 1.6cqw 1.2cqw 0; border-bottom: max(1px, .2cqw) solid #DDE1E3; text-align: start; vertical-align: top; }
+:where(.hb) .a4 .a4__foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1cqw 3cqw; margin-top: auto; padding-top: 2cqw; border-top: max(1px, .2cqw) solid #DDE1E3; font-size: max(var(--hb-fs-min), 2cqw); }
+@media print { @page { size: A4; margin: 0; } :where(.hb) .a4 { width: 210mm; height: 297mm; aspect-ratio: auto; box-shadow: none; break-after: page; } }
+/* Р32 повторный ввод пароля: блок под замком до подтверждения, таймер окна 15 минут */
+:where(.hb) [data-locked] { position: relative; }
+:where(.hb) [data-locked].is-locked { background: var(--hb-sunken); border-style: dashed; } /* под замком: не бледность (контраст), а подложка и пунктир; кнопки без акцента */
+:where(.hb) [data-locked].is-locked > :not(.lockmsg) { pointer-events: none; user-select: none; }
+:where(.hb) [data-locked].is-locked .btn { background: var(--hb-paper); border-color: var(--hb-control); color: var(--hb-ink-2); box-shadow: none; }
+:where(.hb) .lockmsg { display: flex; align-items: center; gap: 8px; font-size: var(--hb-fs-small); color: var(--hb-ink-2); }
+:where(.hb) .lockmsg output { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--hb-ink); }
+/* Р33 аудио: родной audio в строке ленты, схема цвета по теме */
+:where(.hb) .audio { display: grid; gap: 6px; }
+:where(.hb) .audio > audio { width: min(100%, 420px); height: 40px; }
+:where(.hb) .audio > .note { display: flex; align-items: center; gap: 8px; }
+html.dusk :where(.hb) .audio > audio, :root[data-theme="dark"] :where(.hb) .audio > audio { color-scheme: dark; }
+/* Р34 теги: пилюли --remove кита и поле ввода в одной рамке */
+:where(.hb) .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: var(--hb-h-m); padding: 6px 8px; border: 1px solid var(--hb-control); border-radius: var(--hb-r-m); background: var(--hb-paper); cursor: text; }
+:where(.hb) .tags:focus-within { outline: var(--hb-ring); outline-offset: var(--hb-ring-off); }
+:where(.hb) .tags > input { flex: 1; min-width: 8em; min-height: 32px; border: 0; background: none; font: inherit; font-size: 16px; color: var(--hb-ink); outline: 0; }
+:where(.hb) .field.is-err .tags { border-color: var(--hb-err); }
+/* Р35 справка Markdown: блок кода и раскрывающиеся секции внутри .prose кита */
+:where(.hb) .hb-prose pre { overflow-x: auto; padding: 12px 14px; border: 1px solid var(--hb-line); border-radius: var(--hb-r-m); background: var(--hb-sunken); font: var(--hb-fs-cap)/20px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--hb-ink); }
+:where(.hb) .hb-prose :not(pre) > code { padding: 1px 5px; border-radius: var(--hb-r-xs); background: var(--hb-sunken); font: .9em ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--hb-ink); }
+/* Р36 выбор с лимитом .kpick (круг 3: было .pick, имя занято «странами с планетой» .pick кита): недоступный пункт с причиной под подписью */
+:where(.hb) .kpick { display: grid; gap: 10px; }
+:where(.hb) fieldset:is(.kpick, .chips) { min-width: 0; margin: 0; padding: 0; border: 0; } /* кит сбрасывает рамку только у fieldset.field */
+:where(.hb) .kpick small { display: block; font-size: var(--hb-fs-cap); line-height: 18px; color: var(--hb-ink-3); }
+/* Р37 пакет документов: требование, статус и действие строкой */
+:where(.hb) .req > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 12px 0; border-top: 1px solid var(--hb-line); }
+:where(.hb) .req > li:first-child { border-top: 0; }
+:where(.hb) .req > li > .field__err, :where(.hb) .req > li > .note { grid-column: 1 / -1; }
+:where(.hb) .req b { display: block; color: var(--hb-ink); }
+@media (max-width: 479px) { :where(.hb) .req > li { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- круг 3: запросы готовых макетов групп 1 и 2 (stranicy/gruppa-1, gruppa-2 «Нужно в расширение») ---------- */
+:where(.hb) .btn--link.btn--t { min-height: var(--hb-h-touch); } /* текстовая кнопка с целью 44: .btn--link кита стоит после .btn--t и сбрасывал высоту */
+:where(.hb) .auth__in > .brand { padding-block: 8px; } /* логотип М17: 28 + 2 x 8 = зона 44 и на десктопе */
+:where(.hb) .form__ok h2 { display: flex; align-items: center; gap: 8px; font-size: 20px; line-height: 26px; } /* заголовок успеха после h1 страницы: как .form__ok h3 кита */
+:where(.hb) .t-acc { color: var(--hb-accent-text); } /* акцентный текст в заголовке (имя клиента): мелкое выделение цветом ссылок, в «Сумерках» мята из токена */
+:where(.hb) .cmap--s { height: min(50vh, 288px); } /* низкая карта для карточек: 288, как в коде сайта */
+/* рейтинг мнений .vote: кольцо доли «за» .vote__ring (--v процент), рядом место и голоса строкой .phead__meta кита */
+:where(.hb) .vote { display: flex; align-items: center; gap: 16px; min-width: 0; }
+:where(.hb) .vote__ring { display: grid; place-items: center; flex: none; width: 64px; aspect-ratio: 1; border-radius: 50%; background: conic-gradient(var(--hb-accent) var(--hb-v, 0%), var(--hb-line) 0); }
+:where(.hb) .vote__ring > b { display: grid; place-items: center; width: 52px; aspect-ratio: 1; border-radius: 50%; background: var(--hb-paper); font: 600 var(--hb-fs-small)/1 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--hb-ink); }
+:where(.hb) .vote__b { display: grid; gap: 4px; min-width: 0; }
+:where(.hb) .vote__b > b { font-size: var(--hb-fs-ui); line-height: 20px; color: var(--hb-ink); }
+
+/* ---------- цели нажатия 44 на телефоне (размеры кита XS и S остаются на десктопе) ----------
+   кнопки-иконки компонентов расширения растут до 44; прочие малые цели (кнопки S и XS, флажок, сортировка, сегмент, пилюля XS, логотип,
+   ссылки «ещё», крошки, язык, тема) получают невидимую зону 44 через ::before (у .night через ::after: ::before занят точкой), вид не меняется.
+   :where() держит position: relative без веса, поэтому кнопки с position: absolute (поле .inwrap, угол .k-copy) остаются на месте */
+@media (max-width: 899px) {
+  :where(.hb) :is(.tbl .acts, .files__acts, .olist__acts, .rgroup__acts, .copy, .inwrap, .tour__foot, .editor__bar, .cell, .cpick__card) > .btn--icon:is(.btn--xs, .btn--s) { width: var(--hb-h-touch); min-height: var(--hb-h-touch); }
+  /* круг 3: поля S (38), поле ячейки и тегов, строки дерева, пилюля со счётчиком, ссылки стран Р23 растут до 44; ряды малых пилюль и тегов с зазором 12, чтобы зоны 44 не налезали */
+  :where(.hb) :is(.input--s, .select--s, .cell > .input, .tags > input, .tree summary, .tree .tree__leaf, .pill--count, .toc--side a) { min-height: var(--hb-h-touch); }
+  :where(.hb) .tags, :where(.hb) .chips:has(> .pill--xs) { gap: 12px; }
+  /* ползунки кита 32 и метки карты Leaflet: цель 44 на телефоне (группа 2, п. 9 и 10) */
+  :where(.hb) :is(.slider, .calc) input[type="range"] { height: var(--hb-h-touch); }
+  :where(.hb) .cmap .leaflet-bar.leaflet-control-zoom a { width: var(--hb-h-touch); height: var(--hb-h-touch); line-height: var(--hb-h-touch); } /* вес выше .leaflet-touch .leaflet-bar a: CSS Leaflet подключается позже */
+  /* кнопки строки инструментов растут до 44 (ряды .tbar с зазором 8 иначе накладывают зоны); страницы .pager 44 и в ширину (у кита на телефоне 40); зоны малых пилюль в прокрутке (липкая панель, быстрые ответы) не обрезаются */
+  :where(.hb) .tbar > .btn, :where(.hb) .tbar__end > .btn { min-height: var(--hb-h-touch); }
+  :where(.hb) .pager a { min-width: var(--hb-h-touch); }
+  :where(.hb) :is(.pbar--kab > .chips, .chat__hints) { padding-block: 6px; margin-block: -6px; }
+  :where(.hb) .cmap .mpin { position: relative; } :where(.hb) .cmap .mpin::before { content: ""; position: absolute; inset: -16px; }
+  :where(.hb) .inwrap > .btn--icon { top: 2px; }
+  :where(.hb) :where(.btn--s, .btn--xs, .check, th .sort, .seg > button, .pill--xs, .brand, .more, .contact a, .crumbs a, .top__lang, .night) { position: relative; }
+  :where(.hb) :is(.btn--s, .btn--xs, .check, th .sort, .seg > button, .pill--xs, .brand, .more, .contact a, .crumbs a, .top__lang)::before, :where(.hb) .night::after { content: ""; position: absolute; inset: min(0px, 50% - 22px); }
+  :where(.hb) .check a { position: relative; } /* ссылка в подписи флажка лежит над его зоной и остаётся ссылкой */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.hb) .badge--pulse, :where(.hb) .gen[aria-busy="true"]::after, :where(.hb) .kab__boot > .brand svg, :where(.hb) .msg--typing .msg__b > i, :where(.hb) .demo > li { animation: none; }
+  :where(.hb) .drawer--bottom[open] { animation: none; }
+  :where(.hb) button.stat, :where(.hb) .drop { transition: none; }
+}
+@media print { :where(.hb) .kab { display: block; } :where(.hb) .kab__side, :where(.hb) .kab__top, :where(.hb) .kab__bar, :where(.hb) .tour { display: none; } }

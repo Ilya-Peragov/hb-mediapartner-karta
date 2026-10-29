@@ -1,0 +1,38 @@
+/*
+ * Добавки к hb-kab.css для страниц группы 6-1 (админка, /admin/account ... /admin/closer-admission). Источник: gruppa-6-1.css
+ * макетов. Все селекторы под корнем `:where(.hb)`, как у сгенерированного hb-kab.css. Это кандидаты в расширение кита
+ * (README-6-1.md, «Свой CSS»); пока их там нет, живут отдельным файлом, как hb-kab-3b.css.
+ */
+
+/* 1. Строка «страна, шкала цены, значение» панели «Цена за м2, USD» (/admin/catalog/markets): у .pscale поле сверху 30 px под подпись над точкой, в строке подпись не нужна. */
+:where(.hb) .mk-row { display: grid; grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr) minmax(9rem, 12rem); align-items: center; gap: 4px 16px; padding-block: 8px; }
+:where(.hb) .mk-row .pscale { margin-top: 0; }
+:where(.hb) .mk-row__v { display: grid; justify-items: end; text-align: end; }
+@media (max-width: 639px) {
+  :where(.hb) .mk-row { grid-template-columns: minmax(0, 1fr) auto; }
+  :where(.hb) .mk-row .pscale { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* 2. Таблица кампаний «Рассылок»: девять колонок, заголовки кита не переносятся (nowrap), сумма ширин больше доступной даже с .tbl--compact. */
+:where(.hb) .tbl--wrap-head th { white-space: normal; }
+
+/* 3. Чек-лист «Проверка перед публикацией» (блог): заголовок слева, значок «N/5» справа; подсказка пункта отдельной строкой под названием. */
+:where(.hb) .chk__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+:where(.hb) .chk__hint { display: block; }
+
+/* 4. Знаки мессенджеров в подписи поля и в строке .note (/admin/brokers): значок 16 px по центру строки текста, с отступом. Только внутри страницы с классом .adm-ic, чтобы не менять подписи полей других кабинетов. */
+:where(.hb) .adm-ic .field > label > .ic, :where(.hb) .adm-ic .note .ic { vertical-align: -3px; margin-inline-end: 6px; }
+
+/* 5. Таблицы админки (AdminKitTable): ячейка без значения на телефоне не рисуется (у .tbl--stack подпись шла бы без значения). */
+@media (max-width: 639px) { :where(.hb) .tbl--stack td.is-blank { display: none; } }
+
+/* текст с переносами строк из данных (цитата сообщения, критерии из досье): строки не сливаются */
+:where(.hb) .pre-wrap { white-space: pre-wrap; }
+
+/* 6. Редактор статьи блога (Tiptap): редактируемая область занимает всю высоту поля .editor, клик в пустое место ставит курсор; фокус рисует рамка поля, как у .ask__bar. */
+:where(.hb) .editor .ProseMirror { min-height: 180px; outline: none; }
+:where(.hb) .editor:focus-within { border-color: var(--hb-accent); }
+
+/* 7. Выбор обложки из найденных фото (блог): .thumb кнопкой на всю ячейку сетки, выбранное фото в рамке. */
+:where(.hb) button.thumb { width: 100%; padding: 0; border: 2px solid transparent; cursor: pointer; }
+:where(.hb) button.thumb[aria-pressed="true"] { border-color: var(--hb-accent); }

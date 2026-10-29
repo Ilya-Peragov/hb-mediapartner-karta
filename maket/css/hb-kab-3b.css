@@ -1,0 +1,45 @@
+/*
+ * Добавки к hb-kab.css для страниц группы 3b (кабинет агента, вторая половина). Источник: gruppa-3b.css
+ * макетов, правила 1, 3, 4, 5 (правило 7 - своё, карта подборки на Leaflet; правила 8 и 9 - свои, кадры карусели и плитка-кнопка в stories; правило 2 покрыто строками .lrow:has(> .lrow__b:first-child) кита, правило 6
+ * не нужно: MAX теперь со знаком). Все селекторы под корнем `:where(.hb)`, как у сгенерированного hb-kab.css.
+ * Это кандидаты в расширение кита; пока их там нет, живут отдельным файлом (отчёт 3b, «Нужно в расширение»).
+ */
+
+/* 1. Строка .lrow с отдельной кнопкой рядом (лиды на телефоне: «Открыть клиента» и «Удалить заявку»): вложить кнопку в ссылку нельзя. */
+:where(.hb) .lrows > li:has(> .lrow + .btn) { display: flex; align-items: center; padding-inline-end: 8px; }
+:where(.hb) .lrows > li > .lrow:has(+ .btn) { flex: 1; min-width: 0; }
+
+/* 3. Карточка-кнопка .quiz__opts .pill с пояснением под названием: текст button по умолчанию по центру, ряд кита выравнивает к началу. */
+:where(.hb) .quiz__opts .pill { text-align: start; }
+
+/* 4. Два окна .convo на телефоне (/partner/support, /admin/inbox): data-show говорит, что открыто, список (первое окно) или переписка (последнее: `.chat` или обёртка с шапкой и вкладками). */
+@media (max-width: 899px) { :where(.hb) .convo[data-show="list"] > :last-child, :where(.hb) .convo[data-show="chat"] > :first-child { display: none; } }
+@media (min-width: 900px) { :where(.hb) [data-convo-back] { display: none; } }
+
+/* 5. Подсказка «Не скопировалось» у кнопки копирования: кит прячет любой .field__err вне .field.is-err. */
+:where(.hb) .field__err[data-copy-err]:not([hidden]) { display: flex; }
+
+/* 7. Карта подборки: Leaflet-контейнер кладётся в поле .cpick__map на весь размер, свой слой (z-index 0), чтобы карточка .cpick__card (z-index 2) была над панелями карты (их z-index 400+). */
+:where(.hb) .cpick__map > .leaflet-container { position: absolute; inset: 0; z-index: 0; }
+
+/* 8. Кадр карусели .slide с настоящей картинкой (stories): кит рисует кадр текстовой заглушкой, а в коде внутри лежит <img> готового слайда; кладём её на весь кадр. */
+:where(.hb) .slide > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* 9. Плитка-ссылка .panel--link, которая в коде кнопка (stories, выбор «по проекту или своя тема»): у button текст по центру, шрифт и цвет свои. */
+:where(.hb) button.panel--link { width: 100%; font: inherit; color: inherit; text-align: start; cursor: pointer; }
+
+/* 10. Иконка svg.ic в строке текста (заголовок страницы, контакты в карточке клиента, подписи): в макете svg строчный и стоит в одной строке с текстом, а Tailwind preflight делает любой svg блочным (display:block, vertical-align:middle) и роняет иконку на отдельную строку. Возвращаем умолчание браузера, как в макете. Во flex- и grid-родителях значение не влияет. */
+:where(.hb) svg.ic { display: inline; vertical-align: baseline; }
+
+/* 11. Карточка каталога кабинета: .card__link::after растянут на всю карточку (z-index 1) и перекрывал «Ваша доля» (summary) и «В подборку» (button) в .card__body. Кнопки, раскрывашки и чужие ссылки встают над растянутой ссылкой; вложенных интерактивных элементов нет, сама ссылка одна. */
+:where(.hb) .card__body :is(button, summary, a:not(.card__link)) { position: relative; z-index: 2; }
+
+/* 12. Свёрнутая боковая панель (.kab--rail, 72 px): «Спутник» и Telegram лежат прямо в .kab__foot, а не в .kab__row, и кит прячет подпись только у кнопок ряда. Подпись уходит в sr-only (имя для читалки остаётся), кнопка квадратом 44 по центру, как кнопки ряда. */
+:where(.hb) .kab--rail .kab__foot > .btn { justify-self: center; padding: 0; width: var(--hb-h-touch); min-height: var(--hb-h-touch); }
+:where(.hb) .kab--rail .kab__foot > .btn > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* 13. Шторка выбора клиента (/partner/collections/new, «Заполнить из клиента»): клиентов сотни, список не ограничен по высоте и растягивал шторку на десятки экранов. Высота ограничена, внутри прокрутка. */
+:where(.hb) .lrows--scroll { max-height: min(60dvh, 32rem); overflow-y: auto; overscroll-behavior: contain; }
+
+/* 14. Заголовок и текст уведомления без пробелов (ссылка, номер, вставка) не имеет мест переноса: min-content колонки становился шире экрана (4093 px у ЫЫЫЫ...), панель уведомлений прокручивалась вбок. */
+:where(.hb) :is(.ntf__t, .ntf__b) { overflow-wrap: anywhere; }
