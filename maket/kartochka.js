@@ -46,7 +46,7 @@ const PD = {
   oce: { order: 'Ka4TwB8uHf3NzE6mCqXs', old: 'Vj9Dr5', c5: 'HB-O6M1YB', k4: 'HB-O2G8CK', dp: 'HB-O7H5XP', dl: 'HB-O3L9ZT', t: 18, m: 27 }
 };
 const pd = () => PD[ctxPid()] || PD.mpa;
-const orderId = () => pd().order;
+const orderId = () => (st.gen ? pd().order.slice(0, -2) + 'N' + st.gen : pd().order);
 const sfx = () => orderId().slice(-6);
 const tag = () => 'mp-' + orderId();
 const campShort = () => 'mp-…' + sfx();
@@ -91,8 +91,8 @@ const HBREQ0 = () => ({ name: 'Housebook, юрлицо из настроек (п
 const REQ_FIELDS = ['name', 'bank', 'addr', 'iban', 'swift', 'purpose'];
 const REQ_LABEL = { name: 'Получатель', bank: 'Банк', addr: 'Адрес банка', iban: 'Номер счёта или IBAN', swift: 'SWIFT/BIC', purpose: 'Назначение платежа (шаблон)' };
 const REQLOG0 = () => [{ t: '12.10.2026 09:40', who: 'Дмитрий (финансовый директор)', d: REQ_FIELDS.map(k => ({ k: k, was: '', now: HBREQ0()[k] })) }];
-const SNAP = ['f', 'adj', 'orderBy', 'did', 'stops', 'halt', 'haltBy', 'haltWhy', 'market', 'budget', 'spent', 'refund', 'manual', 'bank', 'reward', 'excp', 'excpDone', 'cancelled', 'remarks', 'mkNext', 'payer', 'payee', 'fbPart', 'nodsp'];
-const snapDef = () => ({ f: 0, adj: 0, orderBy: 'partner', did: {}, stops: [], halt: null, haltBy: '', haltWhy: '', market: 'dubai', budget: 2000, spent: 1500, refund: 0, manual: false, bank: '', reward: 3000, excp: false, excpDone: false, cancelled: false, remarks: false, mkNext: '', payer: 'legal_entity', payee: null, fbPart: 0, nodsp: false });
+const SNAP = ['f', 'adj', 'orderBy', 'did', 'stops', 'halt', 'haltBy', 'haltWhy', 'market', 'budget', 'spent', 'refund', 'manual', 'bank', 'reward', 'excp', 'excpDone', 'cancelled', 'remarks', 'mkNext', 'payer', 'payee', 'fbPart', 'nodsp', 'paid', 'mref', 'dec', 'gen', 'closed', 'rdoc'];
+const snapDef = () => ({ f: 0, adj: 0, orderBy: 'partner', did: {}, stops: [], halt: null, haltBy: '', haltWhy: '', market: 'dubai', budget: 2000, spent: 1500, refund: 0, manual: false, bank: '', reward: 3000, excp: false, excpDone: false, cancelled: false, remarks: false, mkNext: '', payer: 'legal_entity', payee: null, fbPart: 0, nodsp: false, paid: {}, mref: { nov: null, dec: null }, dec: false, gen: 0, closed: [], rdoc: '' });
 const st = Object.assign({ role: 'dept', mode: 'admin', pid: 'mpa', conn: 'arrow', rail: false, demoOpen: false, logF: { who: '', type: '', from: '', to: '' }, secOpen: {}, mkPick: '', lq: '', ls: '', store: {}, hbreq: HBREQ0(), reqLog: REQLOG0(), alert: '', pauseFail: false }, snapDef());
 const reserveOf = () => Math.min(st.budget * 0.1, 500);
 const restOf = () => st.budget - st.spent - reserveOf() + st.refund;
@@ -103,7 +103,7 @@ function putSnap(o) { Object.assign(st, snapDef(), JSON.parse(JSON.stringify(o))
 function withSnap(sn, fn) { const keep = takeSnap(); putSnap(sn); try { return fn(); } finally { putSnap(keep); } }
 
 /* Общее состояние на оба режима: адрес (кадр, роль, режим, партнёр) и память вкладки (всё остальное) */
-const SKEY = 'hb-mp-ux3-state-v2';
+const SKEY = 'hb-mp-ux3-state-v3';
 function saveSt() { try { const o = { cur: takeSnap(), role: st.role, mode: st.mode, pid: st.pid, conn: st.conn, rail: st.rail, demoOpen: st.demoOpen, store: st.store, hbreq: st.hbreq, reqLog: st.reqLog, alert: st.alert, pauseFail: st.pauseFail }; sessionStorage.setItem(SKEY, JSON.stringify(o)); } catch (e) { /* память вкладки закрыта: состояние живёт до перезагрузки */ } }
 function loadSt() { try { const j = JSON.parse(sessionStorage.getItem(SKEY) || 'null'); if (j) { putSnap(j.cur); ['role', 'mode', 'pid', 'conn', 'rail', 'demoOpen', 'store', 'hbreq', 'reqLog', 'alert', 'pauseFail'].forEach(k => { if (j[k] !== undefined) st[k] = j[k]; }); } } catch (e) { /* пусто или битое: начинаем с нуля */ } }
 
@@ -184,11 +184,66 @@ const NEWPAYER = NEW('Новое: партнёр называет, кто пла
 const reqOk = () => ['name', 'bank', 'addr', 'iban', 'swift', 'purpose'].every(k => String(st.hbreq[k] || '').trim() !== '') && /^[A-Z0-9]{8}([A-Z0-9]{3})?$/.test(st.hbreq.swift) && st.hbreq.purpose.indexOf('{invoice}') >= 0;
 /* Назначение платежа: шаблон из настроек с номером счёта; пока реквизиты не заполнены - типовой текст с номером заказа */
 const purposeOf = no => (reqOk() ? st.hbreq.purpose.split('{invoice}').join(no) : 'HB-MP v2.1, заказ …' + sfx() + ', счёт ' + no);
-/* Счёт партнёру как в живом коде (InvoiceBlock): сумма, реквизиты Housebook из настроек (не заполнены - «Реквизиты пришлёт менеджер»), назначение платежа, «Скопировать»; PDF и оплаты картой нет; кнопки «Я оплатил(а)» нет */
+/* Счёт партнёру как в живом коде (InvoiceBlock): сумма, реквизиты Housebook из настроек (не заполнены - «Реквизиты пришлёт менеджер»), назначение платежа, «Скопировать»; PDF и оплаты картой нет; под счётом кнопка «Я оплатил(а)» с необязательными датой и номером платёжки (деньги она не двигает) */
 const invForm = no => '<p class="note">Оплата только банковским переводом Swift на банк в Дубае, в долларах США. Другие способы не принимаются.</p>' +
   kv([['Сумма', usd(st.budget)]].concat(reqOk() ? [['Получатель', esc(st.hbreq.name)], ['Банк', esc(st.hbreq.bank)], ['Адрес банка', esc(st.hbreq.addr)], ['Номер счёта или IBAN', esc(st.hbreq.iban)], ['SWIFT/BIC', esc(st.hbreq.swift)]] : [['Реквизиты получателя', 'Реквизиты пришлёт менеджер']]).concat([['Назначение платежа', esc(purposeOf(no))]])) +
   '<div class="contact"><button class="btn" type="button" data-cpy="1">' + ic('copy') + 'Скопировать назначение платежа</button><span class="note" role="status" data-cpy-ok></span></div>' +
   '<p class="note">Оплатите счёт в течение 5 рабочих дней. После оплаты зачисление подтверждает финансовый отдел Housebook: о дате и времени вам сообщат в течение 1 рабочего дня.</p>';
+/* «Я оплатил(а)»: партнёр сообщает финансовому отделу, что отправил перевод; дата и номер платёжки необязательны. Деньги кнопка не двигает: зачисление подтверждает финансист. */
+const PAIDTID = { oct: 'pay.pay', nov: 'tr.pay2', dec: 'pay3.pay3' };
+const paidOf = k => (did(PAIDTID[k]) ? st.paid[k] || null : null);
+const isoRu = iso => (iso ? iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' + iso.slice(0, 4) : '');
+const paidDet = p => { const a = [p.d ? 'дата ' + p.d : '', p.no ? 'платёжка № ' + esc(p.no) : ''].filter(Boolean); return a.length ? ' (' + a.join(', ') + ')' : ' (дата и номер не указаны)'; };
+const paidForm = () => '<div class="hb-grid hb-grid--2">' + field('pd1', 'Дата оплаты', '<input class="input" type="date" id="pd1">', 'Необязательно. Когда вы отправили перевод.') + field('pd2', 'Номер платёжки', '<input class="input" id="pd2" autocomplete="off">', 'Необязательно. Номер платёжного поручения или Swift-референс.') + '</div>' + errBox('pdE');
+const paidBind = r => ['pd1', 'pd2'].forEach(i => $('#' + i, r).addEventListener('input', () => { $('#pdE', r).hidden = true; }));
+const paidGo = (r, k) => {
+  const d = $('#pd1', r).value, n = $('#pd2', r).value.trim();
+  if (d && new Date(d + 'T00:00:00').getTime() > endDay(nowMs())) return fe('pdE', 'Дата оплаты не может быть позже сегодняшнего дня (' + fmtD(new Date(nowMs())) + ').', r);
+  st.paid[k] = { d: isoRu(d), no: n, at: nowMs() }; return true;
+};
+const paidFin = k => { const p = paidOf(k); return p ? '<div class="notice" role="status">' + ic('info') + '<p class="notice__t">Партнёр сообщил об оплате' + paidDet(p) + '. Деньги это не двигает: сверьте выписку банка и подтвердите поступление.</p></div>' : ''; };
+const paidPend = k => (k === 'oct' ? atF('pay') : k === 'nov' ? !novPaid() : atF('pay3'));
+const paidNoteP = () => ['oct', 'nov', 'dec'].filter(k => paidOf(k) && paidPend(k)).map(k => '<div class="notice" role="status">' + ic('info') + '<p class="notice__t">Вы сообщили об оплате (' + (paidOf(k).d || fmtD(new Date(paidOf(k).at))) + '), ждём подтверждения финансового отдела.</p></div>').join('');
+
+/* Окно отказа 24 часа действует на КАЖДЫЙ оплаченный период. Для ноября и декабря отказ не закрывает заказ: деньги за месяц возвращаются, лимит кампании за этот месяц не поднимается, заказ работает на уже оплаченных деньгах или закрывается по решению отдела. */
+const MREF = {
+  nov: { G: 'ноября', N: 'ноябрь', win: 'win2', until: '18.11.2026 10:00', mult: 2, paid: () => novPaid() },
+  dec: { G: 'декабря', N: 'декабрь', win: 'win3', until: '04.12.2026 14:20', mult: 3, paid: () => did('pay3.confirm3') }
+};
+const winTasks = m => {
+  const o = MREF[m], on = () => o.paid() && !st.mref[m];
+  return [
+    { key: 'ref' + m, role: 'partner', lane: 'next', optional: true, until: o.win, cond: on, short: 'Можно отказаться от ' + o.G + ' (24 часа)', waitTxt: 'партнёр может отказаться от ' + o.G,
+      due: () => ({ due: parseNow(o.until), span: DAY, rule: 'п. 5.1 договора: 24 часа с момента зачисления, окно действует на каждый оплаченный период' }),
+      title: () => 'Платёж за ' + o.N + ' зачислен: идут 24 часа, когда вы можете отказаться от ' + o.G + ' и вернуть ' + usd(st.budget),
+      form: () => '<p>Если вы не откажетесь, система сама поднимет лимит кампании до ' + usd(st.budget * o.mult) + ' и реклама на ' + o.N + ' продолжится. Если откажетесь, деньги за ' + o.N + ' вернутся вам, лимит не поднимется, а заказ продолжит работать на уже оплаченных деньгах.</p>' +
+        (atF(o.win) ? '<div class="stat stat--s"><span>До конца окна отказа (' + o.until.replace(' ', ', ') + ' по Дубаю)</span><b data-tick id="tickMain">--</b></div>' : ''),
+      danger: { label: () => 'Отказаться от ' + o.G + ' и вернуть ' + usd(st.budget), ask: { keep: 'Не отказываться', title: 'Отказаться от ' + o.G + '?', text: 'Платёж за ' + o.N + ' вернётся вам, лимит кампании не поднимется, заказ продолжит работать на уже оплаченных деньгах. Отменить отказ нельзя. Если хотите, расскажите, почему передумали.', ok: 'Да, отказаться от ' + o.G + ' и вернуть деньги', reason: 'opt' }, mref: m, by: 'partner', toast: 'Отказ от ' + o.G + ' принят. Финансист вернёт деньги.' },
+      after: ['Деньги за ' + o.N + ' вернутся вам тем же способом, которым вы платили', 'Лимит кампании за ' + o.N + ' не поднимется', 'Если вы ничего не сделаете, ' + o.N + ' запустится сам после окна'] },
+    { key: 'rec' + m, role: 'fin', lane: 'next', optional: true, until: o.win, cond: on, due: null, short: 'Записать отказ партнёра от ' + o.G,
+      title: 'Партнёр сообщил об отказе от ' + o.G + ' не через кабинет? Запишите отказ вручную.',
+      danger: { label: 'Партнёр отказался от ' + o.G + ': записать отказ', ask: { keep: 'Не записывать отказ', title: 'Записать отказ от ' + o.G + '?', text: 'Платёж за ' + o.N + ' вернётся партнёру, лимит кампании не поднимется. Отменить отказ нельзя.', ok: 'Да, записать отказ', reason: false }, mref: m, by: 'fin', toast: 'Отказ от ' + o.G + ' записан. Деньги нужно вернуть.' },
+      after: ['Появится задача вернуть деньги за ' + o.N + ' с номером банковского документа', 'Лимит кампании за ' + o.N + ' не поднимется'] }
+  ];
+};
+/* Возврат денег за отказной месяц: не двигает путь, номер банковского документа обязателен */
+const mrefTasks = role => {
+  const out = ['nov', 'dec'].filter(m => st.mref[m] && !st.did['mrefund.' + m]).map(m => {
+    const o = MREF[m], r = st.mref[m], due = () => { const d = endBD(r.at, 10); return { due: d, span: d - r.at, rule: 'п. 5.2 и 5.6 договора: возврат в течение 10 рабочих дней после отказа' }; };
+    return { id: 'mrefund.' + m, key: 'mrefund', fid: 'mref', role: 'fin', lane: 'next', stay: true, short: () => 'Вернуть партнёру ' + usd(st.budget) + ' за ' + o.N, due: due,
+      title: () => 'Партнёр отказался от ' + o.G + '. Верните ему ' + usd(st.budget) + ' тем же способом, которым он платил, и впишите номер банковского документа. Лимит кампании не поднимается: заказ продолжает работать на уже оплаченных деньгах или закрывается по решению партнёрского отдела.',
+      form: () => facts([['Сумма', usd(st.budget)], ['Платёж', 'за ' + o.N], ['Вернуть до', dtShort(due().due)]]) +
+        field('md1', 'Номер банковского документа', '<input class="input" id="md1" autocomplete="off" placeholder="например BD-20261118-12">', 'Срок возврата: 10 рабочих дней после отказа (п. 5.6)', 'md1E'),
+      bind: x => $('#md1', x).addEventListener('input', () => { $('#md1E', x).hidden = true; }),
+      go: x => { const v = $('#md1', x).value.trim(); if (v === '') return fe('md1E', 'Укажите номер документа: без него возврат не отмечается выполненным.', x); st.mref[m].rdoc = v; st.mref[m].rat = nowMs(); return true; },
+      primary: () => 'Вернуть партнёру ' + usd(st.budget), toast: 'Возврат записан. Партнёр видит: деньги возвращены.',
+      after: ['Платёж за ' + o.N + ' получит статус «Возвращён»', 'Партнёр увидит «Деньги возвращены» с датой', 'Номер документа появится в ленте денег'] };
+  });
+  return role ? out.filter(t => t.role === role) : out;
+};
+const mrefBanner = P => ['nov', 'dec'].filter(m => st.mref[m]).map(m => { const o = MREF[m], r = st.mref[m]; return '<div class="notice' + (r.rdoc ? '' : ' notice--warn') + '" role="status">' + ic(r.rdoc ? 'circle-check' : 'timer') + '<p class="notice__t">' + (P
+  ? (r.rdoc ? 'Деньги за ' + o.N + ' возвращены ' + dt(r.rat) + ' (' + usd(st.budget) + ', документ ' + esc(r.rdoc) + ').' : 'Вы отказались от ' + o.G + ' (' + dt(r.at) + '). Housebook вернёт ' + usd(st.budget) + ' тем же способом, которым вы платили, до ' + dtShort(endBD(r.at, 10)) + ' (10 рабочих дней).')
+  : 'Партнёр отказался от ' + o.G + ' (' + dt(r.at) + '): ' + (r.rdoc ? 'деньги ' + usd(st.budget) + ' возвращены ' + dt(r.rat) + ', документ ' + esc(r.rdoc) + '.' : 'деньги ' + usd(st.budget) + ' ждут возврата, лимит кампании за ' + o.N + ' не поднимается.')) + '</p></div>'; }).join('');
 const invBind = (r, no) => { const b = $('[data-cpy="1"]', r); if (b) b.onclick = () => { copy(purposeOf(no)); $('[data-cpy-ok]', r).textContent = 'Скопировано'; }; };
 /* Реквизиты получателя выплаты (партнёр вносит сам): Swift в USD, банки в России не принимаются */
 const PAYEE_T = { individual: 'Физическое лицо', legal_entity: 'Юридическое лицо' };
@@ -197,9 +252,12 @@ const payeeBlock = () => (st.payee
   : '<div class="notice notice--warn" role="status">' + ic('triangle-alert') + '<p class="notice__t">Партнёр ещё не внёс реквизиты для выплаты: попросите внести их в кабинете. Оплата только Swift-переводом, в USD.</p></div>');
 /* Кампания Meta: создаёт система на паузе. Название mp-{номер заказа}, лимит трат равен оплаченному, дневной бюджет равен бюджету, делённому на 30 (целые центы вниз: 2 000 $ дают 66,66 $) */
 /* Переведено на баланс Facebook: база по кадру (весь лимит месяца уже покрыт) плюс частичные отметки на текущем шаге перевода */
-const fbBase = () => (st.f > ix.cool2 ? 2 * st.budget : st.f >= ix.cool2 ? st.budget : st.f > ix.fnd ? st.budget : 0);
-const fbDone = () => fbBase() + (st.f === ix.fnd || st.f === ix.cool2 ? st.fbPart : 0);
-const capNow = () => st.budget * (st.f >= ix.cool2 ? 2 : 1);
+/* Лимит кампании растёт по месяцам: октябрь, потом ноябрь и декабрь, если окно отказа за месяц прошло без отказа. Отказ от месяца лимит не поднимает. */
+const nv2 = () => !st.mref.nov;
+const nv3 = () => st.dec && !st.mref.dec && !st.mref.nov;
+const fbBase = () => { const b = st.budget; if (nv3() && st.f > ix.cool3) return 3 * b; if (nv3() && st.f >= ix.cool3) return 2 * b; if (nv2() && st.f > ix.cool2) return 2 * b; if (nv2() && st.f >= ix.cool2) return b; return st.f > ix.fnd ? b : 0; };
+const fbDone = () => fbBase() + (st.f === ix.fnd || st.f === ix.cool2 || st.f === ix.cool3 ? st.fbPart : 0);
+const capNow = () => st.budget * (nv3() && st.f >= ix.cool3 ? 3 : nv2() && st.f >= ix.cool2 ? 2 : 1);
 const dayC = () => Math.floor(st.budget * 100 / 30);
 const dayTxt = () => nf(Math.floor(dayC() / 100)) + ',' + pad2(dayC() % 100) + NB + '$';
 const metaId = seed => '1202' + String(Array.from(seed || orderId()).reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 1e11, 7)).padStart(11, '0');
@@ -314,14 +372,16 @@ fr({ id: 'inv', ls: 3, now: '15.10.2026 15:30', ev: 'Счёт ждёт выст�
 
 fr({ id: 'pay', ls: 3, now: '19.10.2026 14:20', ev: 'Счёт выставлен. Партнёр платит Swift-переводом; когда деньги придут на счёт Housebook, финансист подтверждает поступление.', pev: 'Счёт выставлен.', tasks: [{
   key: 'pay', role: 'partner', lane: 'launch', short: () => 'Оплатить счёт TP-2010-001', waitTxt: 'партнёр оплачивает счёт TP-2010-001', pw: '', due: () => dueBD(T('inv'), 5, 'Оплата счёта партнёром: 5 рабочих дней.'),
-  title: () => 'Оплатите счёт TP-2010-001 Swift-переводом в долларах. В назначении платежа укажите номер счёта. Кнопки «Я оплатил(а)» нет: зачисление подтверждает финансист, когда деньги придут на счёт Housebook.',
-  form: () => invForm('TP-2010-001'),
-  bind: r => invBind(r, 'TP-2010-001'),
-  primary: null },
+  title: () => 'Оплатите счёт TP-2010-001 Swift-переводом в долларах. В назначении платежа укажите номер счёта. Отправили перевод - нажмите «Я оплатил(а)»: финансовый отдел увидит ваше сообщение и сверит поступление в банке. Деньги кнопка не двигает: зачисление подтверждает финансист.',
+  form: () => invForm('TP-2010-001') + paidForm(),
+  bind: r => { invBind(r, 'TP-2010-001'); paidBind(r); },
+  go: r => paidGo(r, 'oct'),
+  primary: 'Я оплатил(а)', stay: true, toast: 'Спасибо. Финансовый отдел сверит поступление и подтвердит его.',
+  after: ['Финансист увидит «Партнёр сообщил об оплате» с датой и номером платёжки, если вы их указали', 'Деньги не двигаются: зачисление подтверждает финансист, когда деньги придут на счёт Housebook', 'Вы увидите «Вы сообщили об оплате, ждём подтверждения»'] },
 { key: 'confirm', role: 'fin', lane: 'launch', short: () => 'Подтвердить поступление по счёту TP-2010-001', pw: 'проверяет, что ваш платёж пришёл, и подтверждает его',
   due: () => dueBD(T('inv'), 6, 'Подтверждение поступления: 1 рабочий день после срока оплаты (5 рабочих дней на оплату и 1 на подтверждение).'),
   title: () => 'Деньги по счёту TP-2010-001 пришли на счёт Housebook? Сверьте ' + usd(st.budget) + ' с выпиской банка и нажмите «Подтвердить поступление». Задача открыта сразу, как только счёт выставлен: деньги могут прийти в любой момент.',
-  form: () => facts([['Счёт', 'TP-2010-001 за октябрь'], ['Ждём', usd(st.budget)], ['Время прихода', 'сейчас (' + dt(nowMs()) + ' Дубай)']]) +
+  form: () => paidFin('oct') + facts([['Счёт', 'TP-2010-001 за октябрь'], ['Ждём', usd(st.budget)], ['Время прихода', 'сейчас (' + dt(nowMs()) + ' Дубай)']]) +
     '<label class="check"><input type="checkbox" id="ck"><span><b>Сверил(а) с банковской выпиской:</b> ' + usd(st.budget) + ' пришли от «' + PN() + '»</span></label>' + errBox('blockE'),
   bind: r => $('#ck', r).addEventListener('change', () => { $('#blockE', r).hidden = true; }),
   go: r => { if (!$('#ck', r).checked) return fe('blockE', 'Сначала отметьте, что сверили выписку.', r); return true; },
@@ -494,31 +554,36 @@ fr({ id: 'tr', ls: 7, now: '16.11.2026 15:10', ev: 'Выплата одобре�
     primary: () => 'Подтвердить, что перевёл ' + usd(st.reward), toast: 'Выплата отмечена оплаченной. Партнёр получил уведомление.',
     after: ['Выплата получит статус «Выплачена»', 'Партнёр увидит перевод и номер документа', 'Дорожка выплат по этой сделке завершена'] },
   { key: 'pay2', role: 'partner', lane: 'next', short: 'Оплатить счёт TP-2011-001 на ноябрь', until: 'cn2', cond: () => !did('tr.confirm2'), waitTxt: 'партнёр оплачивает счёт на ноябрь', pw: '', due: () => dueBD(T('inv2'), 5, 'Оплата счёта партнёром: 5 рабочих дней.'),
-    title: () => 'Оплатите счёт TP-2011-001 Swift-переводом в долларах. В назначении платежа укажите номер счёта. Кнопки «Я оплатил(а)» нет: зачисление подтверждает финансист.',
-    form: () => invForm('TP-2011-001'),
-    bind: r => invBind(r, 'TP-2011-001'),
-    primary: null },
+    title: () => 'Оплатите счёт TP-2011-001 Swift-переводом в долларах. В назначении платежа укажите номер счёта. Отправили перевод - нажмите «Я оплатил(а)»: деньги кнопка не двигает, зачисление подтверждает финансист.',
+    form: () => invForm('TP-2011-001') + paidForm(),
+    bind: r => { invBind(r, 'TP-2011-001'); paidBind(r); },
+    go: r => paidGo(r, 'nov'),
+    primary: 'Я оплатил(а)', stay: true, toast: 'Спасибо. Финансовый отдел сверит поступление и подтвердит его.',
+    after: ['Финансист увидит «Партнёр сообщил об оплате»', 'Деньги не двигаются, зачисление подтверждает финансист'] },
   /* Деньги за ноябрь могут прийти, как только выставлен счёт, то есть уже сейчас, пока выплата за октябрь ещё не переведена: кнопка финансиста открыта сразу и кадр не двигает. Кадр «Платёж за ноябрь» пропускается, если поступление уже подтверждено здесь. */
   { key: 'confirm2', role: 'fin', lane: 'next', stay: true, short: () => 'Подтвердить поступление за ноябрь ' + usd(st.budget), pw: 'подтверждает поступление оплаты за ноябрь',
     due: () => dueBD(T('inv2'), 6, 'Подтверждение поступления: 1 рабочий день после срока оплаты (5 рабочих дней на оплату и 1 на подтверждение).'),
     title: () => 'Партнёр оплатил ноябрь? Деньги по счёту TP-2011-001 могут прийти в любой момент, не дожидаясь перевода выплаты за октябрь. Сверьте ' + usd(st.budget) + ' с выпиской банка и подтвердите поступление.',
-    form: () => facts([['Счёт', 'TP-2011-001 за ноябрь'], ['Ждём', usd(st.budget)], ['Время прихода', 'сейчас (' + dt(nowMs()) + ' Дубай)']]) + '<label class="check"><input type="checkbox" id="ck"><span><b>Сверил(а) с банковской выпиской</b></span></label>' + errBox('blockE'),
+    form: () => paidFin('nov') + facts([['Счёт', 'TP-2011-001 за ноябрь'], ['Ждём', usd(st.budget)], ['Время прихода', 'сейчас (' + dt(nowMs()) + ' Дубай)']]) + '<label class="check"><input type="checkbox" id="ck"><span><b>Сверил(а) с банковской выпиской</b></span></label>' + errBox('blockE'),
     bind: r => $('#ck', r).addEventListener('change', () => { $('#blockE', r).hidden = true; }),
     go: r => { if (!$('#ck', r).checked) return fe('blockE', 'Сначала отметьте, что сверили выписку.', r); return true; },
     primary: () => 'Подтвердить поступление ' + usd(st.budget), toast: 'Поступление за ноябрь подтверждено. Пошли 24 часа на отказ.',
-    after: ['Платёж за ноябрь: «Деньги пришли»', 'Идут 24 часа на отказ', 'Выплата за октябрь остаётся у финансиста: её можно перевести в любой момент, ноябрь запустится сам'] }] });
+    after: ['Платёж за ноябрь: «Деньги пришли»', 'Идут 24 часа на отказ от ноября: партнёр может отказаться, финансист записать отказ', 'Выплата за октябрь остаётся у финансиста: её можно перевести в любой момент', 'Лимит кампании поднимется только после окна'] }].concat(winTasks('nov')) });
 
 fr({ id: 'cn2', ls: 7, skip: () => did('tr.confirm2'), now: '17.11.2026 10:00', ev: 'Платёж за ноябрь ждёт подтверждения.', pev: 'Оплата за ноябрь получена банком.', tasks: [{
   key: 'confirm', role: 'fin', lane: 'next', short: () => 'Подтвердить поступление за ноябрь ' + usd(st.budget), pw: 'подтверждает поступление оплаты за ноябрь',
   due: () => ({ due: addBD(T('cn2'), 1), span: DAY, rule: 'Прил. 1, п. 4: Housebook сообщает партнёру дату и время поступления в течение 1 рабочего дня' }),
   title: () => 'Партнёр оплатил ноябрь? Сверьте ' + usd(st.budget) + ' с выпиской банка и подтвердите поступление.',
-  form: () => facts([['Счёт', 'TP-2011-001 за ноябрь'], ['Ждём', usd(st.budget)], ['Время прихода', 'сейчас (17.11.2026 10:00 Дубай)']]) + '<label class="check"><input type="checkbox" id="ck"><span><b>Сверил(а) с банковской выпиской</b></span></label>' + errBox('blockE'),
+  form: () => paidFin('nov') + facts([['Счёт', 'TP-2011-001 за ноябрь'], ['Ждём', usd(st.budget)], ['Время прихода', 'сейчас (17.11.2026 10:00 Дубай)']]) + '<label class="check"><input type="checkbox" id="ck"><span><b>Сверил(а) с банковской выпиской</b></span></label>' + errBox('blockE'),
   bind: r => $('#ck', r).addEventListener('change', () => { $('#blockE', r).hidden = true; }),
   go: r => { if (!$('#ck', r).checked) return fe('blockE', 'Сначала отметьте, что сверили выписку.', r); return true; },
   primary: () => 'Подтвердить поступление ' + usd(st.budget), toast: 'Поступление за ноябрь подтверждено. Пошли 24 часа на отказ.',
-  after: ['Платёж за ноябрь: «Деньги пришли»', 'Идут 24 часа на отказ (до 18.11.2026 10:00)', 'Потом ноябрь запустится сам'] }] });
+  after: ['Платёж за ноябрь: «Деньги пришли»', 'Идут 24 часа на отказ от ноября (до 18.11.2026 10:00)', 'Лимит кампании поднимется только после окна, ноябрь запустится сам'] }] });
 
-fr({ id: 'cool2', ls: 7, now: '18.11.2026 10:05', sys: 'Система (запуск ноября)', nw: 'Новое: после оплаты и 24 часов на отказ система сама поднимает лимит кампании в Meta и ставит задачи: финансисту перевести разницу на баланс Facebook, маркетингу проверить кампанию.', ev: 'Окно отказа за ноябрь прошло, ноябрь запускается сам. Система подняла лимит кампании и поставила задачи финансисту и маркетингу.', pev: 'Окно отказа за ноябрь прошло, реклама на ноябрь продолжается.', tasks: [
+/* Окно отказа за ноябрь: задачи отказа живут в кадрах «Выплата» и «Платёж за ноябрь» (они доступны с момента зачисления), здесь идёт только таймер. Отказ от ноября пропускает этот кадр и подъём лимита. */
+fr({ id: 'win2', ls: 7, skip: () => !!st.mref.nov, now: '17.11.2026 10:05', timer: 23 * 3600 + 55 * 60, sys: 'Таймер окна отказа (ноябрь)', ev: 'Идут 24 часа, в которые партнёр вправе отказаться от ноября. Лимит кампании поднимется сам после окна, ничего нажимать не нужно.', pev: 'Идут 24 часа на отказ от ноября.', tasks: [] });
+
+fr({ id: 'cool2', ls: 7, skip: () => !!st.mref.nov, now: '18.11.2026 10:05', sys: 'Система (запуск ноября)', nw: 'Новое: после оплаты и 24 часов на отказ система сама поднимает лимит кампании в Meta и ставит задачи: финансисту перевести разницу на баланс Facebook, маркетингу проверить кампанию.', ev: 'Окно отказа за ноябрь прошло, ноябрь запускается сам. Система подняла лимит кампании и поставила задачи финансисту и маркетингу.', pev: 'Окно отказа за ноябрь прошло, реклама на ноябрь продолжается.', tasks: [
   { key: 'fund2', role: 'fin', lane: 'next', short: () => 'Перевести ' + usd(capNow() - fbDone()) + ' на баланс рекламного аккаунта Facebook (лимит поднят)', pw: 'переводит деньги на рекламный счёт за ноябрь', due: null,
     title: () => 'Система подняла лимит кампании ' + tag() + ' с ' + usd(capNow() / 2) + ' до ' + usd(capNow()) + '. Переведите ' + usd(capNow() - fbDone()) + ' на баланс рекламного аккаунта Facebook и отметьте перевод.',
     form: () => fundBody(),
@@ -530,29 +595,80 @@ fr({ id: 'cool2', ls: 7, now: '18.11.2026 10:05', sys: 'Система (запу
     form: () => '<p class="note">Отдельной отметки нет: задача уйдёт сама, когда финансист отметит перевод.</p>',
     primary: null }] });
 
-fr({ id: 'cls', ls: 8, now: '30.11.2026 11:00', ev: 'Работа по заказу закончена, ждёт закрытия.', pev: 'Заказ ждёт закрытия.', tasks: [{
+/* Третий месяц (декабрь): тот же порядок, что и в ноябре. Кадры идут только если партнёр продолжает (задача финансиста «Партнёр продолжает» в кадре закрытия) и не отказался от ноября. Три месяца по бюджету не помещаются в лимит платежей первого цикла (4 000 $): сначала лимит повышают в «Допуске и лимите». */
+const limNeed = () => 3 * st.budget;
+const limLock = () => ((st.did['acc.limit'] || 4000) < limNeed() ? 'Платежи за три месяца (' + usd(limNeed()) + ') больше лимита принятых платежей (' + usd(st.did['acc.limit'] || 4000) + '). Сначала отметьте завершение первого цикла и повысьте лимит до ' + usd(limNeed()) + ' и выше (форма ниже, она же в карточке партнёра, раздел «Допуск и лимит»): тогда кнопка откроется.' : '');
+fr({ id: 'inv3', ls: 7, skip: () => !st.dec, now: '01.12.2026 11:00', ev: 'Партнёр продолжает: выставляется счёт на декабрь.', pev: 'Housebook выставляет счёт на декабрь.', tasks: [{
+  key: 'invoice3', role: 'fin', lane: 'next', short: () => 'Выставить счёт на декабрь ' + usd(st.budget), pw: () => 'выставляет вам счёт на декабрь ' + usd(st.budget), due: null,
+  title: () => 'Партнёр продолжает: выставьте счёт на декабрь, ' + usd(st.budget) + '. Три месяца по ' + usd(st.budget) + ' дают ' + usd(limNeed()) + ', это больше лимита принятых платежей первого цикла (' + usd(4000) + ').',
+  lock: limLock,
+  form: () => '<div class="hb-grid hb-grid--3">' + field('iv1', 'Период', '<input class="input" value="Декабрь 2026" disabled>') + field('iv2', 'Сумма', '<input class="input" value="' + usd(st.budget) + '" disabled>') + field('iv3', 'Номер счёта', '<input class="input" value="TP-2012-001" disabled>') + '</div>' + (limLock() ? '<div class="stack">' + accCtl() + '</div>' : '') +
+    '<p class="note">Платёж за третий месяц подтверждает новый период. Автосписания нет (п. 4.1). Окно отказа 24 часа действует и на декабрь.</p>',
+  primary: () => 'Выставить счёт ' + usd(st.budget) + ' на декабрь', toast: 'Счёт TP-2012-001 выставлен. Партнёр видит его в кабинете.',
+  after: ['Партнёру откроется задача «Оплатить счёт на декабрь»', 'Оплата, 24 часа и подъём лимита повторяют ноябрь'] }] });
+
+fr({ id: 'pay3', ls: 7, skip: () => !st.dec, now: '03.12.2026 14:20', ev: 'Счёт на декабрь выставлен. Партнёр платит Swift-переводом, финансист подтверждает поступление.', pev: 'Счёт на декабрь выставлен.', tasks: [
+  { key: 'pay3', role: 'partner', lane: 'next', short: 'Оплатить счёт TP-2012-001 на декабрь', waitTxt: 'партнёр оплачивает счёт на декабрь', pw: '', due: () => dueBD(T('inv3'), 5, 'Оплата счёта партнёром: 5 рабочих дней.'),
+    title: () => 'Оплатите счёт TP-2012-001 Swift-переводом в долларах. В назначении платежа укажите номер счёта. Отправили перевод - нажмите «Я оплатил(а)»: деньги кнопка не двигает, зачисление подтверждает финансист.',
+    form: () => invForm('TP-2012-001') + paidForm(),
+    bind: r => { invBind(r, 'TP-2012-001'); paidBind(r); },
+    go: r => paidGo(r, 'dec'),
+    primary: 'Я оплатил(а)', stay: true, toast: 'Спасибо. Финансовый отдел сверит поступление и подтвердит его.',
+    after: ['Финансист увидит «Партнёр сообщил об оплате»', 'Деньги не двигаются, зачисление подтверждает финансист'] },
+  { key: 'confirm3', role: 'fin', lane: 'next', short: () => 'Подтвердить поступление за декабрь ' + usd(st.budget), pw: 'подтверждает поступление оплаты за декабрь',
+    due: () => dueBD(T('inv3'), 6, 'Подтверждение поступления: 1 рабочий день после срока оплаты (5 рабочих дней на оплату и 1 на подтверждение).'),
+    title: () => 'Партнёр оплатил декабрь? Сверьте ' + usd(st.budget) + ' с выпиской банка и подтвердите поступление по счёту TP-2012-001.',
+    form: () => paidFin('dec') + facts([['Счёт', 'TP-2012-001 за декабрь'], ['Ждём', usd(st.budget)], ['Время прихода', 'сейчас (' + dt(nowMs()) + ' Дубай)']]) + '<label class="check"><input type="checkbox" id="ck"><span><b>Сверил(а) с банковской выпиской</b></span></label>' + errBox('blockE'),
+    bind: r => $('#ck', r).addEventListener('change', () => { $('#blockE', r).hidden = true; }),
+    go: r => { if (!$('#ck', r).checked) return fe('blockE', 'Сначала отметьте, что сверили выписку.', r); return true; },
+    primary: () => 'Подтвердить поступление ' + usd(st.budget), toast: 'Поступление за декабрь подтверждено. Пошли 24 часа на отказ.',
+    after: ['Платёж за декабрь: «Деньги пришли»', 'Идут 24 часа на отказ от декабря: партнёр может отказаться, финансист записать отказ', 'Лимит кампании поднимется только после окна'] }].concat(winTasks('dec')) });
+
+fr({ id: 'win3', ls: 7, skip: () => !st.dec || !!st.mref.dec, now: '03.12.2026 14:25', timer: 23 * 3600 + 55 * 60, sys: 'Таймер окна отказа (декабрь)', ev: 'Идут 24 часа, в которые партнёр вправе отказаться от декабря. Лимит кампании поднимется сам после окна, ничего нажимать не нужно.', pev: 'Идут 24 часа на отказ от декабря.', tasks: [] });
+
+fr({ id: 'cool3', ls: 7, skip: () => !st.dec || !!st.mref.dec, now: '04.12.2026 14:25', sys: 'Система (запуск декабря)', ev: 'Окно отказа за декабрь прошло, декабрь запускается сам. Система подняла лимит кампании и поставила задачи финансисту и маркетингу.', pev: 'Окно отказа за декабрь прошло, реклама на декабрь продолжается.', tasks: [
+  { key: 'fund3', role: 'fin', lane: 'next', short: () => 'Перевести ' + usd(capNow() - fbDone()) + ' на баланс рекламного аккаунта Facebook (лимит поднят)', pw: 'переводит деньги на рекламный счёт за декабрь', due: null,
+    title: () => 'Система подняла лимит кампании ' + tag() + ' с ' + usd(capNow() - st.budget) + ' до ' + usd(capNow()) + '. Переведите ' + usd(capNow() - fbDone()) + ' на баланс рекламного аккаунта Facebook и отметьте перевод.',
+    form: () => fundBody(),
+    bind: fundBind, go: fundGo,
+    primary: 'Деньги на балансе Facebook', toast: 'Перевод отмечен: лимит кампании покрыт.',
+    after: ['Лимит кампании покрыт переводами полностью', 'Система деньги не переводит: перевод вы делаете сами, своим способом'] },
+  { key: 'check3', role: 'mkt', lane: 'next', short: () => 'Лимит кампании поднят до ' + usd(capNow()) + ': проверьте кампанию', pw: 'проверяет вашу рекламу после подъёма лимита', due: null,
+    title: () => 'Лимит кампании ' + tag() + ' поднят до ' + usd(capNow()) + ': после перевода денег на баланс Facebook проверьте, что кампания идёт.',
+    form: () => '<p class="note">Отдельной отметки нет: задача уйдёт сама, когда финансист отметит перевод.</p>',
+    primary: null }] });
+
+fr({ id: 'cls', ls: 8, get now() { return st.dec ? '30.12.2026 11:00' : '30.11.2026 11:00'; }, ev: 'Работа по заказу закончена, ждёт закрытия.', pev: 'Заказ ждёт закрытия.', tasks: [{
   key: 'close', role: 'dept', lane: 'close', short: 'Закрыть заказ', pw: 'закрывает заказ и готовит возврат остатка', due: null,
-  title: 'Выплата прошла, ноябрь отработан. Если работа по заказу закончена, закройте его: он уйдёт в архив.',
-  form: () => '<div class="notice" role="status">' + ic('info') + '<p><b>Если партнёр продолжает</b>, заказ не закрывайте: каждый месяц повторяется шаг «Счёт» и дальше по кругу.</p></div>' + closeReady(),
+  title: () => 'Выплата прошла, ' + (st.dec ? 'ноябрь и декабрь отработаны' : st.mref.nov ? 'партнёр отказался от ноября' : 'ноябрь отработан') + '. Если работа по заказу закончена, закройте его: он уйдёт в архив.',
+  form: () => '<div class="notice" role="status">' + ic('info') + '<p><b>Если партнёр продолжает</b>, заказ не закрывайте: у финансиста есть задача «Партнёр продолжает: выставить счёт на декабрь», дальше счёт, оплата, 24 часа на отказ и подъём лимита идут как в ноябре.</p></div>' + closeReady(),
   primary: null,
   danger: { label: 'Закрыть заказ', ask: { keep: 'Оставить заказ открытым', title: 'Закрыть заказ?', text: 'Закрытый заказ нельзя вернуть в работу: платежи, расход и остановки по нему больше не принимаются. Остаток бюджета вернётся партнёру. Открытые сделки продолжаются: окно атрибуции и выплаты идут до конца (п. 7.7).', ok: 'Да, закрыть заказ', reason: false }, toast: 'Заказ закрыт. Финансисту ушла задача вернуть остаток.', complete: true },
-  after: ['Заказ уйдёт в «Архив»', 'Система сразу поставит кампанию в Meta на паузу; если пауза не пройдёт, маркетингу придёт красная задача остановить кампанию вручную', 'Финансист получит задачу вернуть остаток бюджета', 'Партнёр получит уведомление о закрытии'] }] });
+  after: ['Заказ уйдёт в «Архив»', 'Система сразу поставит кампанию в Meta на паузу (при ограничении Meta «не чаще раза в 30 секунд» повторит паузу при следующей сверке); если не пройдёт и повтор, маркетингу придёт красная задача остановить кампанию вручную', 'Финансист получит задачу вернуть остаток бюджета', 'Партнёр получит уведомление о закрытии'] },
+  { key: 'cont', role: 'fin', lane: 'next', optional: true, cond: () => !st.dec && !st.mref.nov, short: 'Партнёр продолжает: выставить счёт на декабрь', due: null,
+    title: 'Партнёр хочет продолжить на декабрь? Выставьте счёт на третий месяц: оплата, 24 часа на отказ и подъём лимита идут в том же порядке, что и в ноябре.',
+    primary: 'Партнёр продолжает: выставить счёт на декабрь', toast: 'Идём к счёту на декабрь.', fx: () => { st.dec = true; }, jump: 'inv3',
+    after: ['Откроется шаг «Счёт на декабрь»', 'Закрытие заказа отложится до конца декабря'] }] });
 
-fr({ id: 'ref', ls: 8, now: '02.12.2026 12:00', ev: 'Остаток ждёт возврата партнёру.', pev: 'Заказ закрыт.', tasks: [{
+fr({ id: 'ref', ls: 8, get now() { return st.dec ? '04.01.2027 12:00' : '02.12.2026 12:00'; }, ev: 'Остаток ждёт возврата партнёру.', pev: 'Заказ закрыт.', tasks: [{
   key: 'refund', role: 'fin', lane: 'close', short: () => 'Вернуть остаток ' + usd(restAll()), pw: () => 'возвращает вам неиспользованный остаток ' + usd(restAll()),
   due: () => ({ due: endBD(T('ref'), 10), span: endBD(T('ref'), 10) - T('ref'), rule: 'п. 5.6 договора: бесспорный остаток возвращается в течение 10 рабочих дней после сверки' }),
   title: () => 'Заказ закрыт. Верните партнёру неиспользованный остаток ' + usd(restAll()) + '.',
   form: () => '<div class="notice" role="status">' + ic('equal') + '<p class="notice__t">' + usd(takenAll()) + ' принято - ' + usd(spentAll()) + ' потрачено - ' + usd(reserveOf()) + ' резерв на хвосты = <b>' + usd(restAll()) + '</b> к возврату</p></div>' +
-    field('rb', 'Номер банковского документа', '<input class="input" id="rb" autocomplete="off" placeholder="например BD-20261202-03">', 'Срок возврата: 10 рабочих дней после сверки (п. 5.6) ' + NEW('Сейчас возврат остатка в системе не отслеживается совсем: нет суммы, даты и статуса. Предложение.'), 'rbE'),
+    field('rb', 'Номер банковского документа', '<input class="input" id="rb" autocomplete="off" placeholder="например BD-20261202-03">', 'Срок возврата: 10 рабочих дней после сверки (п. 5.6). Номер документа обязателен: он появится в ленте денег, а партнёр увидит дату и факт возврата.', 'rbE'),
   bind: r => $('#rb', r).addEventListener('input', () => { $('#rbE', r).hidden = true; }),
-  go: r => { const v = $('#rb', r).value.trim(); if (v === '') return fe('rbE', 'Укажите номер документа.', r); st.rdoc = v; return true; },
+  go: r => { const v = $('#rb', r).value.trim(); if (v === '') return fe('rbE', 'Укажите номер банковского документа: без него возврат остатка не отмечается выполненным.', r); st.rdoc = v; return true; },
   primary: () => 'Вернуть партнёру ' + usd(restAll()), toast: 'Остаток возвращён. Путь пройден.',
-  after: ['Остаток по заказу станет нулём (резерв остаётся на хвосты)', 'Партнёр увидит возврат', 'Путь партнёра завершён'] }] });
+  after: ['Остаток по заказу станет нулём (резерв остаётся на хвосты)', 'Номер документа появится в ленте денег', 'Партнёр увидит дату и факт возврата', 'Путь партнёра завершён'] }] });
 
-fr({ id: 'done', ls: 9, now: '02.12.2026 12:05', ev: 'Всё закрыто. Заказ в архиве, выплаты проведены, остаток возвращён. Следующих действий нет.', pev: 'Всё закрыто.', done: true, tasks: [] });
+fr({ id: 'done', ls: 9, get now() { return st.dec ? '04.01.2027 12:05' : '02.12.2026 12:05'; }, ev: 'Всё закрыто. Заказ в архиве, выплаты проведены, остаток возвращён. Следующих действий нет.', pev: 'Всё закрыто.', done: true, tasks: [] });
 const LAST = F.length - 1;
-const takenAll = () => st.budget * (reached('cn2') ? 2 : 1);
-const spentAll = () => st.spent + (reached('cn2') ? novSpent() : 0);
+const novPaid = () => !!(did('tr.confirm2') || did('cn2.confirm'));
+const decPaid = () => st.dec && reached('pay3');
+const nvKept = () => reached('cn2') && !st.mref.nov;
+const dcKept = () => decPaid() && !st.mref.dec;
+const takenAll = () => st.budget * (1 + (nvKept() ? 1 : 0) + (dcKept() ? 1 : 0));
+const spentAll = () => st.spent + (nvKept() ? novSpent() : 0) + (dcKept() ? novSpent() : 0);
 const restAll = () => takenAll() - spentAll() - reserveOf() + st.refund;
 
 /* ---------- Подсказки, тосты, подтверждения ---------- */
@@ -596,11 +712,11 @@ function openTasks(role) {
     if (st.did[t.id]) return;
     if (st.f >= (t.since ? ix[t.since] : i) && st.f <= (t.until ? ix[t.until] : i)) out.push(t);
   }));
-  return out.concat(stopTasks(role), alertTasks(role));
+  return out.concat(mrefTasks(role), stopTasks(role), alertTasks(role));
 }
 function taskById(id) {
   for (const fr_ of F) for (const t of (fr_.tasks || [])) if (t.id === id) return t;
-  return stopTasks(null).concat(alertTasks(null), [HALT_REFUND, HALT_AGAIN]).find(t => t.id === id) || null;
+  return stopTasks(null).concat(alertTasks(null), mrefTasks(null), [HALT_REFUND, HALT_AGAIN, HALT_AGAIN_DEPT]).find(t => t.id === id) || null;
 }
 const dueOf = t => { const d = val(t.due); return d || null; };
 function sortTasks(ts) { return ts.slice().sort((a, b) => { const x = dueOf(a), y = dueOf(b); return x && y ? x.due - y.due : x ? -1 : y ? 1 : 0; }); }
@@ -610,7 +726,12 @@ function setF(i, keepHalt) {
   const prev = st.f; let n = Math.max(0, Math.min(LAST, i));
   while (skipped(n) && n > 0 && n < LAST) n += n >= prev ? 1 : -1;
   st.f = n; if (n !== prev) st.fbPart = 0; if (st.f <= ix.dsp) st.nodsp = false;
-  if (st.f < prev) F.forEach((fr_, k) => { if (k >= st.f) (fr_.tasks || []).forEach(t => { delete st.did[t.id]; }); });
+  if (st.f < prev) {
+    F.forEach((fr_, k) => { if (k >= st.f) (fr_.tasks || []).forEach(t => { delete st.did[t.id]; }); });
+    if (st.f <= ix.win2) { st.mref.nov = null; delete st.did['mrefund.nov']; }
+    if (st.f <= ix.win3) { st.mref.dec = null; delete st.did['mrefund.dec']; }
+    if (st.f < ix.inv3) st.dec = false;
+  }
   if (!keepHalt) { st.halt = null; delete st.did['halt.refund']; }
   render(); writeHash();
 }
@@ -621,6 +742,7 @@ function runTask(t, host, kind) {
     if (d.fx) d.fx();
     st.did[t.id] = kind;
     if (d.toast) toast(val(d.toast), kind === 'danger' ? 'warn' : 'ok');
+    if (d.mref) { st.mref[d.mref] = { by: d.by, why: why || '', at: nowMs() }; if (atF(MREF[d.mref].win)) setF(st.f + 1); else { render(); writeHash(); } return; }
     if (d.halt) { st.halt = { key: d.halt, by: d.by, why: why || '', tid: t.id, at: nowMs() }; render(); writeHash(); return; }
     if (d.back) { setF(ix[d.back]); return; }
     if (d.jump) { setF(ix[d.jump]); return; }
@@ -634,18 +756,29 @@ const HALT_REFUND = { id: 'halt.refund', key: 'refund', role: 'fin', lane: 'laun
   short: () => 'Вернуть партнёру ' + usd(st.budget), due: haltDue,
   title: () => 'Партнёр отказался от заказа. Верните ему ' + usd(st.budget) + ' тем же способом, которым он платил, и впишите номер банковского документа.',
   form: () => facts([['Сумма', usd(st.budget)], ['Платёж', 'TP-2010-001 за октябрь'], ['Вернуть до', dtShort(haltDue().due)]]) +
-    field('hd', 'Номер банковского документа', '<input class="input" id="hd" autocomplete="off" placeholder="например BD-20261019-05">', 'Срок возврата: 10 рабочих дней после отказа (п. 5.6) ' + NEW('Сейчас кнопка «Возврат выполнен» номера документа не просит. Предложение: номер и дата, как у возврата остатка.'), 'hdE'),
+    field('hd', 'Номер банковского документа', '<input class="input" id="hd" autocomplete="off" placeholder="например BD-20261019-05">', 'Срок возврата: 10 рабочих дней после отказа (п. 5.6). Номер документа обязателен: он появится в ленте денег, а партнёр увидит дату и факт возврата.', 'hdE'),
   bind: r => $('#hd', r).addEventListener('input', () => { $('#hdE', r).hidden = true; }),
   go: r => { const v = $('#hd', r).value.trim(); if (v === '') return fe('hdE', 'Укажите номер документа: без него возврат не отмечается выполненным.', r); st.halt.rdoc = v; st.halt.rat = nowMs(); return true; },
   primary: () => 'Вернуть партнёру ' + usd(st.budget), toast: 'Возврат записан. Партнёр видит: деньги возвращены.',
   after: ['Платёж получит статус «Возвращён»', 'Партнёр увидит «Деньги возвращены» с датой', 'Путь по этому заказу завершён; новый заказ партнёр оформит сам'] };
-const HALT_AGAIN = { id: 'halt.again', key: 'again', role: 'partner', lane: 'launch', jump: 'adm', due: null,
+/* Новый заказ после отказа и возврата денег: прежний заказ уходит в «Закрытые заказы» (кабинет партнёра) и в архив (админка), новый идёт с новым номером и проходит путь с оформления. Месячные отметки (оплаты, отказы, декабрь) сбрасываются. */
+const newOrderFx = by => () => {
+  const h = st.halt || {};
+  st.closed.push({ mk: st.market, budget: st.budget, no: sfx(), by: h.by, why: h.why || '', at: h.at || 0, rdoc: h.rdoc || '', rat: h.rat || 0, since: '15.10.2026' });
+  st.gen++; st.mref = { nov: null, dec: null }; st.dec = false; st.paid = {}; st.rdoc = '';
+  if (by) st.orderBy = by;
+};
+const HALT_AGAIN_DEPT = { id: 'halt.again2', key: 'again2', role: 'dept', lane: 'launch', jump: 'ord', due: null, fx: newOrderFx('dept'),
+  short: 'Оформить заказ за партнёра', title: 'Деньги партнёру вернули. Если партнёр хочет продолжить, оформите новый заказ за него после разговора: допуск остаётся открытым, прежний заказ уйдёт в архив с отказом.',
+  primary: 'Оформить заказ за партнёра', toast: 'Начинаем новый заказ за партнёра (в макете путь идёт с подтверждения заказа).',
+  after: ['Откроется оформление заказа за партнёра: рынок, бюджет, условия', 'Прежний заказ останется в архиве с отказом партнёра', 'Дальше путь нового заказа проходится до конца, с новым номером'] };
+const HALT_AGAIN = { id: 'halt.again', key: 'again', role: 'partner', lane: 'launch', jump: 'adm', due: null, fx: newOrderFx(''),
   short: 'Оформить новый заказ', title: 'Деньги вам вернули. Если захотите продолжить, оформите новый заказ: допуск у вас остаётся открытым.',
   primary: 'Оформить новый заказ', toast: 'Начинаем новый заказ (в макете путь идёт с оформления заказа).',
   after: ['Откроется оформление заказа: рынок, бюджет, условия', 'Прежний заказ остаётся в «Закрытых заказах» с отказом'] };
 function haltTasks(role) {
   if (!st.halt || st.halt.key !== 'refuse') return [];
-  const out = st.did['halt.refund'] ? [HALT_AGAIN] : [HALT_REFUND];
+  const out = st.did['halt.refund'] ? [HALT_AGAIN, HALT_AGAIN_DEPT] : [HALT_REFUND];
   return role ? out.filter(t => t.role === role) : out;
 }
 
@@ -665,14 +798,14 @@ function stopTasks(role) {
   const out = [{ id: 'stop.' + i, key: 'stop', fid: 'stop', role: 'mkt', lane: 'ads', stay: true, short: () => 'Кампания ' + campShort() + ': пауза в Meta не прошла, остановите кампанию вручную',
     due: () => ({ due: s.due, span: s.due - s.recv, rule: stopRule }),
     title: () => 'Партнёр потребовал остановить расходы, а пауза в Meta не прошла. Кампания ' + campShort() + ': остановите кампанию вручную в рекламном кабинете Meta и подтвердите.',
-    form: () => '<p class="note">Система сразу пыталась поставить кампанию на паузу, Meta ответила отказом. Причину видит полный админ.</p>',
+    form: () => '<p class="note">Система сразу пыталась поставить кампанию на паузу, Meta ответила отказом. Причину видит полный админ. Если Meta ограничила запросы («не чаще раза в 30 секунд»), система откладывает паузу и повторяет её при следующей сверке; эта задача ставится, только когда и повтор не прошёл: остановите кампанию вручную.</p>',
     primary: 'Реклама отключена', toast: 'Отмечено: реклама отключена, партнёр это увидит.',
     confirm: { confirm: true, title: 'Реклама отключена в Meta?', text: 'Подтвердите, что кампания на паузе. Партнёр увидит время отключения.', ok: 'Да, реклама отключена', keep: 'Нет, ещё не отключена' },
     fx: () => { s.done = true; s.doneMs = Math.min(s.due, s.recv + 45 * 60000); s.auto = false; },
     after: ['Тревога у всех снимется, полоса станет серой', 'Партнёр увидит «Реклама остановлена» со временем', 'В журнал запишется, кто и когда отключил'] },
   { id: 'stopwhy.' + i, key: 'stopwhy', fid: 'stop', role: 'admin', lane: 'ads', short: () => 'Кампания ' + campShort() + ': пауза в Meta не прошла, причина', optional: true,
     due: () => ({ due: s.due, span: s.due - s.recv, rule: stopRule }),
-    title: () => 'Пауза кампании ' + campShort() + ' в Meta не прошла. ' + why + ' Маркетингу поставлена задача остановить кампанию вручную.',
+    title: () => 'Пауза кампании ' + campShort() + ' в Meta не прошла. ' + why + ' Если причина в ограничении Meta («не чаще раза в 30 секунд»), система сначала отложила паузу и повторила её при следующей сверке. Маркетингу поставлена задача остановить кампанию вручную, потому что и повтор не прошёл.',
     primary: null }];
   return role ? out.filter(t => t.role === role) : out;
 }
@@ -745,7 +878,7 @@ const LSTEPS = [
   ['fnd', 'fnd', 'Деньги на балансе Facebook', 'Деньги на рекламном счёте', 'Финансист переводит лимит кампании на баланс рекламного аккаунта Facebook своим способом и отмечает перевод. Пока переведён не весь лимит, кнопка «Кампания запущена» у маркетинга закрыта.', 'Housebook переводит деньги на рекламный счёт.\nХод Housebook.'],
   ['cmp', 'cmp', 'Реклама запущена', 'Реклама запущена', 'Маркетинг включает кампанию в рекламном кабинете Meta и нажимает «Кампания запущена».', 'Housebook запускает вашу рекламу.\nХод Housebook.']
 ];
-const STAGE = { req: 'Заявка', adm: 'Допуск открыт', ord: 'Заказ оформляется', ctr: 'Заказ оформляется', inv: 'Счёт к выставлению', pay: 'Ждём оплату', cnf: 'Оплатил, ждём подтверждения', win: 'Окно отказа', go: 'Запуск', fnd: 'Запуск', cmp: 'Запуск', meta: 'Реклама идёт', cli: 'Реклама идёт', dsp: 'Реклама идёт', com: 'Реклама идёт', plan: 'Реклама идёт', apr: 'Реклама идёт', inv2: 'Реклама идёт', tr: 'Реклама идёт', cn2: 'Реклама идёт', cool2: 'Реклама идёт', cls: 'Закрытие', ref: 'Закрытие', done: 'Закрыт' };
+const STAGE = { req: 'Заявка', adm: 'Допуск открыт', ord: 'Заказ оформляется', ctr: 'Заказ оформляется', inv: 'Счёт к выставлению', pay: 'Ждём оплату', cnf: 'Оплатил, ждём подтверждения', win: 'Окно отказа', go: 'Запуск', fnd: 'Запуск', cmp: 'Запуск', meta: 'Реклама идёт', cli: 'Реклама идёт', dsp: 'Реклама идёт', com: 'Реклама идёт', plan: 'Реклама идёт', apr: 'Реклама идёт', inv2: 'Реклама идёт', tr: 'Реклама идёт', cn2: 'Реклама идёт', cool2: 'Реклама идёт', win2: 'Реклама идёт', inv3: 'Реклама идёт', pay3: 'Реклама идёт', win3: 'Реклама идёт', cool3: 'Реклама идёт', cls: 'Закрытие', ref: 'Закрытие', done: 'Закрыт' };
 const stageName = () => (st.halt ? 'Отказался от заказа' : STAGE[F[st.f].id]);
 const launched = () => st.f >= ix.meta;
 const dateOfNext = i => F[Math.min(F.length - 1, i + 1)].now.slice(0, 5);
@@ -802,10 +935,16 @@ function lanes(P) {
   const dlSt = dTr ? stB('deals', P ? 'Выплата ждёт перевода' : 'Ждёт перевода', 'warn') : dWa ? stB('deals', P ? 'Выплата ждёт одобрения' : 'Ждёт одобрения', 'warn') : dPay ? stB('deals', P ? 'Награда к выплате' : 'К выплате', 'warn') : stB('deals', P ? 'Ждём комиссию от застройщика' : 'Ждём комиссий', 'muted');
   add('deals', laneBox('wallet', P ? 'Начисления и выплаты' : 'Комиссии и выплаты', P ? 'Housebook записывает и платит' : 'Финансы и финансовый директор', dlSt,
     P ? [] : [['К выплате', dPay], ['Ждут одобрения', dWa], ['Ждут перевода', dTr], ['Выплачено', dPd ? 1 : 0]].filter(c => c[1] > 0), laneNeed(P, 'deals'), '<ul class="mchains">' + ds + '</ul>'));
-  const nx = fromF('inv2'), nxPaid = st.f >= ix.cool2;
-  const nxSt = !nx || nxPaid ? stB('next', P ? 'Счёт на следующий месяц в работе' : 'Счёт на ' + (nxPaid ? 'декабрь' : 'ноябрь') + ' 2026 не выставлен', 'warn') : stB('next', P ? 'Ждём оплату за следующий месяц' : 'Ждём оплату за ноябрь 2026', 'warn');
+  const nx = fromF('inv2'), nxPaid = st.f >= ix.cool2 || !!st.mref.nov, decOn = st.dec && fromF('inv3'), decRun = decOn && (st.f >= ix.cool3 || !!st.mref.dec);
+  const nxSt = decRun ? stB('next', st.mref.dec ? 'Декабрь: отказ партнёра' : 'Декабрь оплачен', 'muted') : decOn ? stB('next', P ? 'Ждём оплату за следующий месяц' : 'Ждём оплату за декабрь 2026', 'warn') : !nx || nxPaid ? stB('next', P ? 'Счёт на следующий месяц в работе' : 'Счёт на декабрь 2026 не выставлен', 'warn') : stB('next', P ? 'Ждём оплату за следующий месяц' : 'Ждём оплату за ноябрь 2026', 'warn');
+  const lim = 'Система поднимает лимит кампании сама после окна отказа, финансист переводит разницу на баланс Facebook.';
+  const nv = st.mref.nov, dv = st.mref.dec;
+  const nov = [['счёт на ноябрь', 1], ['оплата', paidOf('nov') || novPaid() || st.f >= ix.cn2 ? 1 : 0, 'Партнёр платит Swift-переводом; кнопка «Я оплатил(а)» сообщает отделу об оплате.'], ['зачисление', novPaid() || st.f >= ix.win2 ? 1 : 0], ['24 часа', nv || st.f > ix.win2 ? 1 : 0, 'Окно отказа за ноябрь']]
+    .concat(nv ? [['отказ от ноября', 1, 'Лимит кампании не поднимается.'], ['деньги возвращены', did('mrefund.nov') ? 1 : 0, 'Возврат с номером банковского документа.']] : [['лимит поднят', st.f >= ix.cool2 && fbDone() >= capNow() ? 1 : 0, lim]]);
+  const dec = [['счёт на декабрь', st.f > ix.inv3 ? 1 : 0], ['оплата', paidOf('dec') || did('pay3.confirm3') || st.f > ix.pay3 ? 1 : 0], ['зачисление', did('pay3.confirm3') || st.f >= ix.win3 ? 1 : 0], ['24 часа', dv || st.f > ix.win3 ? 1 : 0, 'Окно отказа за декабрь']]
+    .concat(dv ? [['отказ от декабря', 1, 'Лимит кампании не поднимается.'], ['деньги возвращены', did('mrefund.dec') ? 1 : 0, 'Возврат с номером банковского документа.']] : [['лимит поднят', st.f >= ix.cool3 && fbDone() >= capNow() ? 1 : 0, lim]]);
   add('next', laneBox('calendar', 'Следующий месяц', P ? 'Housebook и вы' : 'Финансы и партнёр', nxSt, [],
-    laneNeed(P, 'next'), nx ? mchain([['счёт на ноябрь', 1], ['оплата', st.f >= ix.cn2], ['зачисление', st.f >= ix.cool2], ['24 часа', st.f >= ix.cool2 && F[st.f].id !== 'cool2' ? 1 : 0, 'Окно отказа за ноябрь'], ['лимит поднят', st.f >= ix.cool2 && fbDone() >= capNow() ? 1 : 0, 'Система поднимает лимит кампании сама, финансист переводит разницу на баланс Facebook.']]) : ''));
+    laneNeed(P, 'next'), (nx ? mchain(nov) : '') + (decOn ? mchain(dec) : '')));
   return '<div class="lanes">' + out.join('') + '</div>';
 }
 function renderPath(P) {
@@ -850,7 +989,7 @@ function taskCard(t, open) {
 }
 function doneCard() {
   const rec = takenAll();
-  return '<p class="lead">Всё закрыто. Заказ в архиве, выплаты проведены, остаток возвращён. Следующих действий нет.</p>' + facts([['Принято от партнёра', usd(rec)], ['Потрачено на рекламу', usd(spentAll())], ['Возвращено остатком', usd(restAll())], ['Награда партнёру', usd(st.reward)]]);
+  return '<p class="lead">Всё закрыто. Заказ в архиве, выплаты проведены, остаток возвращён. Следующих действий нет.</p>' + facts([['Принято от партнёра', usd(rec)], ['Потрачено на рекламу', usd(spentAll())], ['Возвращено остатком', usd(restAll())], ['Награда партнёру', usd(st.reward)]].concat(st.rdoc ? [['Возврат остатка', dt(T('ref')) + ', документ ' + esc(st.rdoc)]] : []));
 }
 const ROLE_ORDER = ['dept', 'mkt', 'fin', 'cfo', 'partner'];
 /* Чей сейчас ход: только названия ролей, без текста чужих задач и сумм */
@@ -887,7 +1026,8 @@ function renderHalt(P) {
   if (mine.length) return sec(head + lead + mine.map(t => taskCard(t, true)).join('') + unhalt);
   return sec(head + lead + '<p class="note">' + (done ? 'Ваших задач нет: путь по заказу завершён.' : 'Ваших задач нет. Деньги возвращает финансист.') + '</p>' + unhalt);
 }
-function renderQueue(P) {
+function renderQueue(P) { return (st.halt || F[st.f].done ? '' : (P ? paidNoteP() : '') + mrefBanner(P)) + renderQueue0(P); }
+function renderQueue0(P) {
   if (st.halt) return renderHalt(P);
   if (F[st.f].done) return '<section class="panel now now--done stack" id="nowHost"><div class="now__eye"><h2 class="h4">Что сделать сейчас</h2>' + B('done', 'Готово') + '</div>' + doneCard() + '</section>';
   const role = P ? 'partner' : st.role;
@@ -921,7 +1061,8 @@ const hbItem = x => x.text + (x.due === null ? '' : ', обычно до ' + dtS
 const is = (...rs) => rs.indexOf(st.role) >= 0;
 const disclose = (sum, body, open) => '<details class="disclose"' + (open ? ' open' : '') + '><summary>' + sum + ' ' + ic('chevron-down') + '</summary><div class="stack">' + body + '</div></details>';
 const partnerOf = id => PARTNERS.find(p => p.id === id) || PARTNERS[0];
-function closeReady() { return checks(['Выплата за октябрь проведена (документ ' + esc(st.bank || 'BD-…') + ')', 'Ноябрь отработан', 'К возврату партнёру ' + usd(restAll())]); }
+const monthsTxt = () => (st.mref.nov ? 'Ноябрь: партнёр отказался, деньги за месяц ' + (did('mrefund.nov') ? 'возвращены' : 'вернёт финансист') : st.dec ? (st.mref.dec ? 'Ноябрь отработан, от декабря партнёр отказался (деньги ' + (did('mrefund.dec') ? 'возвращены' : 'вернёт финансист') + ')' : 'Ноябрь и декабрь отработаны') : 'Ноябрь отработан');
+function closeReady() { return checks(['Выплата за октябрь проведена (документ ' + esc(st.bank || 'BD-…') + ')', monthsTxt(), 'К возврату партнёру ' + usd(restAll())]); }
 
 /* ---------- Блок метрик по заказу: один в админке и в кабинете. Деньги здесь не повторяем: они живут в своём одном месте ---------- */
 function metricsBlock(who) {
@@ -954,22 +1095,53 @@ function headAdmin() {
     '<div class="phead__acts"><button type="button" class="btn">' + ic('refresh') + 'Обновить</button></div></div><a class="more more--s" href="#" data-list>' + ic('chevron-left', 'ic--16') + 'К списку медиапартнёров</a></div></section>';
 }
 /* «Допуск и лимит» как в живом коде (AccessTab): отметка «первый цикл завершён», потом повышение лимита; форма видна, только когда доступна */
+/* Панели «Допуск и лимит» (отметка цикла, повышение лимита): живут в карточке партнёра и в форме задачи «Счёт на декабрь», когда лимит мал */
+function accCtl() {
+  const cyc = !!did('acc.cycle'), lim = st.did['acc.limit'] || 4000, can = is('fin', 'admin');
+  if (!can) return '<p class="note">Отметку цикла и лимит меняют финансовый отдел и полный админ; этой роли доступно чтение.</p>';
+  if (!cyc) return '<div class="panel stack"><h3 class="h4">Первый цикл завершён</h3><p class="note">Отметка не снимает лимит, она открывает его повышение.</p>' + field('fcAt', 'Когда завершён', '<input class="input" type="datetime-local" id="fcAt">', 'Время по Дубаю; пусто - сейчас.') + '<div><button class="btn btn--acc" type="button" id="fcBtn">Отметить цикл завершённым</button></div></div>';
+  return '<div class="panel stack"><h3 class="h4">Повысить лимит</h3><div class="hb-grid hb-grid--2">' + field('lmV', 'Новый лимит, $', '<input class="input" id="lmV" inputmode="decimal">', 'Сейчас ' + usd(lim) + '; только вверх.') + field('lmAt', 'Партнёра уведомили', '<input class="input" type="datetime-local" id="lmAt">', 'Время по Дубаю, не в будущем.') + '</div>' + errBox('lmE') + '<div><button class="btn btn--acc" type="button" id="lmBtn">Повысить лимит</button></div></div>';
+}
 function secAccess() {
-  const cl = st.f > ix.cnf, ac = cl ? takenAll() : 0, cyc = !!did('acc.cycle'), lim = st.did['acc.limit'] || 4000, can = is('fin', 'admin');
+  const cl = st.f > ix.cnf, ac = cl ? takenAll() : 0, cyc = !!did('acc.cycle'), lim = st.did['acc.limit'] || 4000;
   let b = facts([['Допуск', fromF('meta') ? 'Работает' : fromF('ord') ? 'Есть заказ' : 'Приглашён'], ['Первый цикл', cyc ? 'завершён' : 'идёт'], ['Лимит бюджета', usd(lim) + ', остаток ' + usd(lim - ac)]]);
-  if (!can) b += '<p class="note">Отметку цикла и лимит меняют финансовый отдел и полный админ; этой роли доступно чтение.</p>';
-  else if (!cyc) b += '<div class="panel stack"><h3 class="h4">Первый цикл завершён</h3><p class="note">Отметка не снимает лимит, она открывает его повышение.</p>' + field('fcAt', 'Когда завершён', '<input class="input" type="datetime-local" id="fcAt">', 'Время по Дубаю; пусто - сейчас.') + '<div><button class="btn btn--acc" type="button" id="fcBtn">Отметить цикл завершённым</button></div></div>';
-  else b += '<div class="panel stack"><h3 class="h4">Повысить лимит</h3><div class="hb-grid hb-grid--2">' + field('lmV', 'Новый лимит, $', '<input class="input" id="lmV" inputmode="decimal">', 'Сейчас ' + usd(lim) + '; только вверх.') + field('lmAt', 'Партнёра уведомили', '<input class="input" type="datetime-local" id="lmAt">', 'Время по Дубаю, не в будущем.') + '</div>' + errBox('lmE') + '<div><button class="btn btn--acc" type="button" id="lmBtn">Повысить лимит</button></div></div>';
+  b += accCtl();
   return secWrap('access', 'Допуск и лимит', b);
 }
 /* Статусы платежей: партнёру «Ожидается / Зачислен / 24 часа на отказ», сотрудникам подробнее */
 const payRows = P => {
   const win = 'Первые 24 часа после зачисления платёж можно вернуть, отказавшись от заказа (п. 5.1 договора).\nПо окончании окна реклама запустится сама.';
-  const oct = st.halt ? (st.did['halt.refund'] ? B('muted', 'Возвращён', 'Партнёр отказался в окне 24 часа, деньги возвращены.') : B('warn', 'Отказ, возврат ждёт', 'Партнёр отказался в окне 24 часа. Финансист возвращает деньги в течение 10 рабочих дней (п. 5.6).')) : st.f <= ix.pay ? (P ? B('muted', 'Ожидается', 'Деньги ещё не зачислены: зачисление подтверждает финансовый отдел Housebook.') : atF('pay') ? B('warn', 'Ждём оплату, поступление подтверждает финансист') : B('muted', 'Ждём оплату')) : atF('win') ? (P ? B('warn', '24 часа на отказ', win) : B('warn', 'Можно отказаться до 20.10, 14:20', win)) : B('ok', 'Зачислен');
+  const oct = st.halt ? (st.did['halt.refund'] ? B('muted', 'Возвращён', 'Партнёр отказался в окне 24 часа, деньги возвращены.') : B('warn', 'Отказ, возврат ждёт', 'Партнёр отказался в окне 24 часа. Финансист возвращает деньги в течение 10 рабочих дней (п. 5.6).')) : st.f <= ix.pay ? (paidOf('oct') ? B('warn', P ? 'Вы сообщили об оплате, ждём подтверждения' : 'Партнёр сообщил об оплате: сверьте выписку', 'Зачисление подтверждает финансовый отдел Housebook.') : P ? B('muted', 'Ожидается', 'Деньги ещё не зачислены: зачисление подтверждает финансовый отдел Housebook.') : atF('pay') ? B('warn', 'Ждём оплату, поступление подтверждает финансист') : B('muted', 'Ждём оплату')) : atF('win') ? (P ? B('warn', '24 часа на отказ', win) : B('warn', 'Можно отказаться до 20.10, 14:20', win)) : B('ok', 'Зачислен');
   const rows = [['2026-10', 'TP-2010-001', usd(st.budget), oct, '15.10.2026']];
-  if (fromF('inv2')) rows.push(['2026-11', 'TP-2011-001', usd(st.budget), st.f <= ix.tr && !did('tr.confirm2') ? (P ? B('muted', 'Ожидается') : B('muted', 'Ждём оплату')) : atF('cn2') ? (P ? B('muted', 'Ожидается', 'Деньги ещё не зачислены: зачисление подтверждает финансовый отдел Housebook.') : B('warn', 'Деньги ждут подтверждения')) : st.f < ix.cool2 ? (P ? B('warn', '24 часа на отказ', win.replace('реклама запустится сама', 'ноябрь запустится сам')) : B('warn', 'Можно отказаться до 18.11, 10:00', win.replace('реклама запустится сама', 'ноябрь запустится сам'))) : B('ok', 'Зачислен'), '14.11.2026']);
+  const monthRow = k => {
+    const o = MREF[k], r = st.mref[k], rep = paidOf(k), w = win.replace('отказавшись от заказа', 'отказавшись от ' + o.G).replace('реклама запустится сама', o.N + ' запустится сам'), cool = k === 'nov' ? ix.cool2 : ix.cool3;
+    if (r) return r.rdoc ? B('muted', 'Возвращён', 'Партнёр отказался от ' + o.G + ' в окне 24 часа, деньги возвращены ' + dt(r.rat) + '.') : B('warn', 'Отказ, возврат ждёт', 'Партнёр отказался от ' + o.G + ' в окне 24 часа. Финансист возвращает деньги в течение 10 рабочих дней (п. 5.6).');
+    if (!o.paid()) return rep ? B('warn', P ? 'Вы сообщили об оплате, ждём подтверждения' : 'Партнёр сообщил об оплате: сверьте выписку', 'Зачисление подтверждает финансовый отдел Housebook.') : (P ? B('muted', 'Ожидается', 'Деньги ещё не зачислены: зачисление подтверждает финансовый отдел Housebook.') : (atF('cn2') || atF('pay3') ? B('warn', 'Деньги ждут подтверждения') : B('muted', 'Ждём оплату')));
+    return st.f < cool ? (P ? B('warn', '24 часа на отказ', w) : B('warn', 'Можно отказаться до ' + o.until.slice(0, 5) + ', ' + o.until.slice(11), w)) : B('ok', 'Зачислен');
+  };
+  if (fromF('inv2')) rows.push(['2026-11', 'TP-2011-001', usd(st.budget), monthRow('nov'), '14.11.2026']);
+  if (st.dec && fromF('inv3')) rows.push(['2026-12', 'TP-2012-001', usd(st.budget), monthRow('dec'), '01.12.2026']);
   return rows;
 };
+/* Лента денег: все движения по заказам партнёра в одном списке (поступления, возвраты после отказа и за месяц, возврат остатка). Номер банковского документа видят сотрудники; партнёр видит дату и факт. */
+const feedKey = t => t.slice(6, 10) + t.slice(3, 5) + t.slice(0, 2) + t.slice(11);
+const signed = a => (a > 0 ? '+' : '-') + usd(Math.abs(a));
+function moneyFeed(P) {
+  const rows = [], add = (t, what, amt, doc) => rows.push({ t: t, what: what, amt: amt, doc: doc || '' });
+  st.closed.forEach(c => { add(F[ix.cnf].now, 'Поступление за октябрь, заказ …' + c.no, c.budget); if (c.rat) add(dt(c.rat), 'Возврат после отказа, заказ …' + c.no, -c.budget, c.rdoc); });
+  if (did('pay.confirm') || st.f > ix.cnf) add(F[ix.cnf].now, 'Поступление за октябрь', st.budget);
+  if (st.halt && st.did['halt.refund']) add(dt(st.halt.rat), 'Возврат после отказа (октябрь)', -st.budget, st.halt.rdoc);
+  if (novPaid()) add(did('tr.confirm2') ? F[ix.tr].now : F[ix.cn2].now, 'Поступление за ноябрь', st.budget);
+  if (st.mref.nov && st.mref.nov.rdoc) add(dt(st.mref.nov.rat), 'Возврат за ноябрь после отказа', -st.budget, st.mref.nov.rdoc);
+  if (did('pay3.confirm3')) add(F[ix.pay3].now, 'Поступление за декабрь', st.budget);
+  if (st.mref.dec && st.mref.dec.rdoc) add(dt(st.mref.dec.rat), 'Возврат за декабрь после отказа', -st.budget, st.mref.dec.rdoc);
+  if (did('ref.refund')) add(F[ix.ref].now, 'Возврат остатка при закрытии заказа', -restAll(), st.rdoc);
+  rows.sort((a, b) => (feedKey(a.t) < feedKey(b.t) ? 1 : -1));
+  const body = !rows.length ? '<p class="note">Движений денег пока нет.</p>' : P
+    ? tbl([['Дата'], ['Что'], ['Сумма', 1]], rows.map(r => [r.t, r.what, signed(r.amt)]))
+    : tbl([['Дата'], ['Что'], ['Сумма', 1], ['Номер документа']], rows.map(r => [r.t, r.what, signed(r.amt), r.doc ? esc(r.doc) : '-']));
+  return '<h3 class="h4">Лента денег</h3>' + body;
+}
 function secOrder() {
   const money = is('fin', 'cfo');
   if (!fromF('ord')) return '';
@@ -978,7 +1150,7 @@ function secOrder() {
   if (money) {
     b += (fromF('meta') ? facts([['Принято от партнёра', usd(takenAll())], ['Потрачено', usd(spentAll())], ['Резерв на хвосты', usd(reserveOf())], ['Остаток партнёра', usd(restAll())]]) : '') +
       (fromF('fnd') ? facts([['Лимит кампании', usd(capNow())], ['Переведено на баланс Facebook', usd(fbDone())]]) : '') +
-      (fromF('inv') ? tbl([['Период'], ['Счёт'], ['Сумма', 1], ['Статус'], ['Выставлен']], payRows(false)) : '');
+      (fromF('inv') ? tbl([['Период'], ['Счёт'], ['Сумма', 1], ['Статус'], ['Выставлен']], payRows(false)) + moneyFeed(false) : '');
   }
   return sec('order', 'Заказ', money ? 'видеть в одном месте, где деньги партнёра: счета, оплата, остаток.' : 'видеть, что и на каких условиях заказано.', panel(b));
 }
@@ -1029,7 +1201,7 @@ function secStats() {
   return secWrap('summary', 'Сводка по партнёру', panel(facts([
     ['Внесено', usd(takenAllNow())], ['Потрачено', fromF('meta') ? usd(spentAll()) : usd(0)], ['Остаток', fromF('meta') ? usd(restAll()) : usd(takenAllNow())], ['Комиссий получено', got ? usd(10500) : usd(0)], ['Начислено партнёру', got ? usd(st.reward) : usd(0)], ['Выплачено партнёру', st.f > ix.tr ? usd(st.reward) : usd(0)], ['Долг по сторно', usd(0)]])));
 }
-const takenAllNow = () => (st.f > ix.cnf ? st.budget : 0) + (st.f > ix.cn2 || did('tr.confirm2') ? st.budget : 0);
+const takenAllNow = () => (st.f > ix.cnf ? st.budget : 0) + ((st.f > ix.cn2 || novPaid()) && !st.mref.nov ? st.budget : 0) + (did('pay3.confirm3') && !st.mref.dec ? st.budget : 0);
 /* Архив закрытых заказов как в живом коде (ArchiveSection, archive-view.ts): одно раскрытие, пояснение, у каждого заказа сразу видна карточка с итогом */
 function archiveCard(title, rows) {
   return '<section class="panel stack"><h3 class="h4">' + title + '</h3><dl class="kv kv--s">' + rows.map(r => '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>').join('') + '</dl></section>';
@@ -1037,11 +1209,12 @@ function archiveCard(title, rows) {
 function secArchive() {
   const money = is('fin', 'cfo', 'admin'), cards = [];
   if (st.f >= ix.done) {
-    cards.push(archiveCard(MK[st.market].name + ', с 20.10.2026 по 30.11.2026, заказ …' + sfx(), [['Закрыт', '30.11.2026 11:00 (Дубай)']]
+    cards.push(archiveCard(MK[st.market].name + ', с 20.10.2026 по ' + F[ix.cls].now.slice(0, 10) + ', заказ …' + sfx(), [['Закрыт', F[ix.cls].now + ' (Дубай)']]
       .concat(money ? [['Бюджет в месяц', usd(st.budget)]] : [])
       .concat([['Клиентов привязано', String(taggedN())], ['Кампания Meta', 'номер ' + metaId() + (money ? ', потрачено ' + usd(spentAll()) + ' из лимита ' + usd(capNow()) : '')]])
-      .concat(money ? [['Принято от партнёра', usd(takenAll())], ['Потрачено на рекламу', usd(spentAll())]].concat(st.refund > 0 ? [['Вернула рекламная площадка', usd(st.refund)]] : []).concat([['Удержано в резерве', usd(reserveOf())], ['Остаток к возврату партнёру', restAll() > 0 ? usd(restAll()) : 'нет'], ['Вознаграждение партнёру', 'начислено ' + usd(st.reward) + ', выплачено ' + usd(st.reward)]]) : [])));
+      .concat(money ? [['Принято от партнёра', usd(takenAll())], ['Потрачено на рекламу', usd(spentAll())]].concat(st.refund > 0 ? [['Вернула рекламная площадка', usd(st.refund)]] : []).concat([['Удержано в резерве', usd(reserveOf())], ['Остаток к возврату партнёру', restAll() > 0 ? usd(restAll()) : 'нет'], ['Вознаграждение партнёру', 'начислено ' + usd(st.reward) + ', выплачено ' + usd(st.reward)]]).concat(st.rdoc ? [['Возврат остатка', dt(T('ref')) + ', документ ' + esc(st.rdoc)]] : []) : [])));
   }
+  st.closed.forEach(c => cards.push(archiveCard(MK[c.mk].name + ', отказ партнёра, заказ …' + c.no, [['Закрыт', c.at ? dt(c.at) + ' (Дубай)' : '15.10.2026']].concat([['Причина', 'партнёр отказался в окне 24 часа' + (c.why ? ': «' + esc(c.why) + '»' : '')]]).concat(money ? [['Бюджет в месяц', usd(c.budget)], ['Принято от партнёра', usd(c.budget)], ['Возвращено партнёру', usd(c.budget) + (c.rat ? ', ' + dt(c.rat) + ', документ ' + esc(c.rdoc) : '')]] : []))));
   cards.push(archiveCard('Таиланд, с 02.09.2026 по 30.09.2026, заказ …' + pd().old, [['Закрыт', '30.09.2026 11:00 (Дубай)']]
     .concat(money ? [['Бюджет в месяц', usd(2000)]] : [])
     .concat([['Клиентов привязано', '8'], ['Кампания Meta', 'номер ' + metaId(pd().old) + (money ? ', потрачено ' + usd(1700) + ' из лимита ' + usd(2000) : '')]])
@@ -1083,12 +1256,15 @@ const LOG = [
   { a: 'inv2', t: '14.11.2026 11:00', who: 'Анна', role: 'Финансист', type: 'Счёт', text: () => 'Выставила счёт TP-2011-001 на ' + usd(st.budget) + ' за ноябрь', was: 'нет счёта', now: 'Ждём оплату' },
   { a: 'tr', t: () => '16.11.2026 15:10', who: 'Анна', role: 'Финансист', type: 'Выплата', text: () => 'Отметила выплату оплаченной, документ ' + (st.bank || 'BD-…'), was: 'Одобрена', now: 'Выплачена' },
   { a: 'cn2', t: '17.11.2026 10:00', who: 'Анна', role: 'Финансист', type: 'Деньги', text: () => 'Подтвердила поступление ' + usd(st.budget) + ' по счёту TP-2011-001', was: 'Ждём оплату', now: 'Зачислен' },
-  { a: 'cn2', t: '18.11.2026 10:05', who: 'Система', role: 'автозапуск ноября', type: 'Реклама', text: () => 'Подняла лимит кампании ' + campShort() + ' до ' + usd(st.budget * 2) + ' после оплаты и 24 часов на отказ', was: () => 'Лимит ' + usd(st.budget), now: () => 'Лимит ' + usd(st.budget * 2) },
-  { a: 'cls', t: '30.11.2026 11:00', who: 'Мария', role: 'Партнёрский отдел', type: 'Закрытие', text: 'Закрыла заказ, система поставила кампанию на паузу в Meta', was: 'Реклама идёт', now: 'Закрыт' },
-  { a: 'ref', t: '02.12.2026 12:00', who: 'Анна', role: 'Финансист', type: 'Закрытие', text: () => 'Вернула партнёру остаток ' + usd(restAll()), was: () => 'Остаток ' + usd(restAll()), now: 'Остаток 0 $' }
+  { a: 'win2', ok: () => !st.mref.nov, t: '18.11.2026 10:05', who: 'Система', role: 'автозапуск ноября', type: 'Реклама', text: () => 'Подняла лимит кампании ' + campShort() + ' до ' + usd(st.budget * 2) + ' после оплаты и 24 часов на отказ', was: () => 'Лимит ' + usd(st.budget), now: () => 'Лимит ' + usd(st.budget * 2) },
+  { a: 'inv3', ok: () => st.dec, t: '01.12.2026 11:00', who: 'Анна', role: 'Финансист', type: 'Счёт', text: () => 'Выставила счёт TP-2012-001 на ' + usd(st.budget) + ' за декабрь', was: 'нет счёта', now: 'Ждём оплату' },
+  { a: 'pay3', ok: () => st.dec && did('pay3.confirm3'), t: '03.12.2026 14:20', who: 'Анна', role: 'Финансист', type: 'Деньги', text: () => 'Подтвердила поступление ' + usd(st.budget) + ' по счёту TP-2012-001', was: 'Ждём оплату', now: 'Зачислен' },
+  { a: 'win3', ok: () => st.dec && !st.mref.dec, t: '04.12.2026 14:25', who: 'Система', role: 'автозапуск декабря', type: 'Реклама', text: () => 'Подняла лимит кампании ' + campShort() + ' до ' + usd(st.budget * 3) + ' после оплаты и 24 часов на отказ', was: () => 'Лимит ' + usd(st.budget * 2), now: () => 'Лимит ' + usd(st.budget * 3) },
+  { a: 'cls', t: () => F[ix.cls].now, who: 'Мария', role: 'Партнёрский отдел', type: 'Закрытие', text: 'Закрыла заказ, система поставила кампанию на паузу в Meta', was: 'Реклама идёт', now: 'Закрыт' },
+  { a: 'ref', t: () => F[ix.ref].now, who: 'Анна', role: 'Финансист', type: 'Закрытие', text: () => 'Вернула партнёру остаток ' + usd(restAll()) + (st.rdoc ? ', документ ' + esc(st.rdoc) : ''), was: () => 'Остаток ' + usd(restAll()), now: 'Остаток 0 $' }
 ];
 function logEntries() {
-  const e = LOG.filter(x => x.a === '-' || (reached(x.a) && !(x.a === 'dsp' && st.nodsp))).map(x => ({ t: val(x.t), who: val(x.who), role: val(x.role), type: x.type, text: val(x.text), was: val(x.was), now: val(x.now) }));
+  const e = LOG.filter(x => x.a === '-' || (reached(x.a) && !(x.a === 'dsp' && st.nodsp) && (!x.ok || x.ok()))).map(x => ({ t: val(x.t), who: val(x.who), role: val(x.role), type: x.type, text: val(x.text), was: val(x.was), now: val(x.now) }));
   const add = (id, o) => { if (did(id)) e.push(o(did(id))); };
   add('cli.link', k => ({ t: '02.11.2026 10:20', who: 'Мария', role: 'Партнёрский отдел', type: 'Клиенты', text: k === 'danger' ? 'Оставила заявку ' + pd().c5 + ' без заказа, причина записана' : 'Привязала заявку ' + pd().c5 + ' к заказу вручную (пришла до запуска заказа)', was: 'Не привязана', now: k === 'danger' ? 'Без заказа' : 'Привязана к заказу' }));
   add('ctr.accept', () => ({ t: '15.10.2026 11:30', who: PN(), role: 'партнёр, из кабинета', type: 'Заказ', text: 'Принял условия HB-MP v2.1 (подпись под договором)', was: 'Оформляется', now: 'Условия приняты' }));
@@ -1103,6 +1279,16 @@ function logEntries() {
   if (st.cancelled) e.push({ t: '13.11.2026 10:30', who: 'Дмитрий', role: 'Финансовый директор', type: 'Выплата', text: 'Отменил выплату, причина указана', was: 'Запланирована', now: 'Отменена' });
   if (st.halt) e.push({ t: F[st.f].now, who: st.halt.by === 'partner' ? PN() : (st.halt.by === 'fin' ? 'Анна' : 'Мария'), role: st.halt.by === 'partner' ? 'партнёр, из кабинета' : (st.halt.by === 'fin' ? 'Финансист' : 'Партнёрский отдел'), type: 'Отказ', text: st.halt.by === 'partner' ? 'Партнёр отказался от заказа в окне отказа' : 'Записала отказ партнёра', was: 'Окно отказа', now: 'Отказ, деньги возвращаются' });
   if (st.halt && st.did['halt.refund']) e.push({ t: dt(st.halt.rat), who: 'Анна', role: 'Финансист', type: 'Возврат', text: 'Вернула ' + usd(st.budget) + ' партнёру после отказа, документ ' + st.halt.rdoc, was: 'Возврат ждёт', now: 'Деньги возвращены' });
+  ['oct', 'nov', 'dec'].forEach(k => { const p = paidOf(k); if (p) e.push({ t: dt(p.at), who: PN(), role: 'партнёр, из кабинета', type: 'Деньги', text: 'Сообщил об оплате счёта за ' + { oct: 'октябрь', nov: 'ноябрь', dec: 'декабрь' }[k] + paidDet(p), was: 'Ждём оплату', now: 'Ждём подтверждения финансиста' }); });
+  ['nov', 'dec'].forEach(k => {
+    const r = st.mref[k], o = MREF[k]; if (!r) return;
+    e.push({ t: dt(r.at), who: r.by === 'partner' ? PN() : 'Анна', role: r.by === 'partner' ? 'партнёр, из кабинета' : 'Финансист', type: 'Отказ', text: r.by === 'partner' ? 'Партнёр отказался от ' + o.G + ' в окне отказа' + (r.why ? ', причина: «' + esc(r.why) + '»' : '') : 'Записала отказ партнёра от ' + o.G, was: 'Окно отказа за ' + o.N, now: 'Отказ, лимит не поднимается' });
+    if (r.rdoc) e.push({ t: dt(r.rat), who: 'Анна', role: 'Финансист', type: 'Возврат', text: 'Вернула ' + usd(st.budget) + ' партнёру за ' + o.N + ', документ ' + esc(r.rdoc), was: 'Возврат ждёт', now: 'Деньги возвращены' });
+  });
+  st.closed.forEach(c => {
+    if (c.at) e.push({ t: dt(c.at), who: c.by === 'partner' ? PN() : (c.by === 'fin' ? 'Анна' : 'Мария'), role: c.by === 'partner' ? 'партнёр, из кабинета' : (c.by === 'fin' ? 'Финансист' : 'Партнёрский отдел'), type: 'Отказ', text: 'Заказ …' + c.no + ': ' + (c.by === 'partner' ? 'партнёр отказался в окне отказа' : 'записан отказ партнёра'), was: 'Окно отказа', now: 'Отказ, деньги возвращаются' });
+    if (c.rat) e.push({ t: dt(c.rat), who: 'Анна', role: 'Финансист', type: 'Возврат', text: 'Заказ …' + c.no + ': вернула ' + usd(c.budget) + ' партнёру после отказа, документ ' + esc(c.rdoc), was: 'Возврат ждёт', now: 'Деньги возвращены' });
+  });
   const key = t => t.slice(6, 10) + t.slice(3, 5) + t.slice(0, 2) + t.slice(11);
   return e.sort((a, b) => (key(a.t) < key(b.t) ? 1 : -1));
 }
@@ -1161,13 +1347,13 @@ function pageCabinet() {
     const nextNote = nextM ? '<p class="note">Следующий рынок: ' + MK[nextM].name + '. С периода ' + nm.getFullYear() + '-' + pad2(nm.getMonth() + 1) + '.</p>' : '';
     const stat = st.halt ? B('err', 'Отказ партнёра') : closedNow ? B('err', 'Завершён') : stopLast() && stopLast().done ? B('warn', 'Расходы остановлены') : fromF('go') ? B('ok', 'Работает') : B('muted', 'Подписан');
     const cur = fromF('ord') ? card(MK[st.market].name, MK[st.market].terr.join(', '), st.budget, stat, '15.10.2026', nextNote + mkChange, PAYER[st.payer]) : '';
-    const closed = (closedNow ? [cur] : []).concat(fromF('ord') ? [card('Таиланд', 'Таиланд (TH)', 2000, B('err', 'Завершён'), '02.09.2026')] : []);
+    const closed = (closedNow ? [cur] : []).concat(st.closed.map(c => card(MK[c.mk].name, MK[c.mk].terr.join(', '), c.budget, B('err', 'Отказ партнёра, деньги возвращены'), c.since + ', заказ …' + c.no))).concat(fromF('ord') ? [card('Таиланд', 'Таиланд (TH)', 2000, B('err', 'Завершён'), '02.09.2026')] : []);
     out += '<section class="stack" aria-labelledby="mp-orders">' + secH('mp-orders', 'Заказ') + (closedNow ? '' : cur) + (closed.length ? disclose('Закрытые заказы (' + closed.length + ')', closed.join('')) : '') + '</section>';
   }
   if (fromF('inv')) {
     const m = fromF('meta'), sp = m ? st.spent : 0, rs = m ? reserveOf() : 0, rows = payRows(true);
     const cells = rows.map((r, i) => [r[0], r[1], r[2], r[3], i === 0 ? (m ? usd(sp) : '') : '', i === 0 ? (m ? usd(rs) : '') : '', i === 0 ? (m ? usd(restOf()) : '') : '']);
-    out += '<section class="stack" aria-labelledby="mp-pay">' + secH('mp-pay', 'Платежи и бюджет') + tbl([['Период'], ['Счёт'], ['Сумма', 1], ['Статус'], ['Потрачено', 1], ['Резерв', 1], ['Остаток', 1]], cells) + '<p class="note">Остаток = Поступило - Потрачено + возвраты рекламной площадки - Резерв. Лимит принятых платежей в первый цикл: ' + usd(4000) + '. Остаток переносится на следующий период по правилам договора.</p></section>';
+    out += '<section class="stack" aria-labelledby="mp-pay">' + secH('mp-pay', 'Платежи и бюджет') + tbl([['Период'], ['Счёт'], ['Сумма', 1], ['Статус'], ['Потрачено', 1], ['Резерв', 1], ['Остаток', 1]], cells) + '<p class="note">Остаток = Поступило - Потрачено + возвраты рекламной площадки - Резерв. Лимит принятых платежей в первый цикл: ' + usd(st.did['acc.limit'] || 4000) + '. Остаток переносится на следующий период по правилам договора.</p>' + moneyFeed(true) + '</section>';
   }
   if (fromF('cli')) {
     const cn = clientNums();
@@ -1204,7 +1390,7 @@ function pMetrics() {
   const pay = st.f > ix.com && st.f <= ix.tr && !did('tr.transfer');
   return { stage: stageName(), stop: s ? s : null, stopIdx: s ? st.stops.indexOf(s) : -1, n: cn.n, wait: cn.wait, disp: cn.disp,
     camp: !fromF('meta') ? '-' : stopLast() && stopLast().done ? 'остановлена' : st.f >= ix.cls ? 'закрыта' : 'идёт',
-    spend: fromF('meta') ? spentAll() : 0, toCredit: (atF('pay') || atF('cn2') || (atF('tr') && !did('tr.confirm2'))) ? st.budget : 0, toPay: pay ? st.reward : 0, payDue: pay ? payDue().due : 0, now: nowMs(),
+    spend: fromF('meta') ? spentAll() : 0, toCredit: (atF('pay') || atF('cn2') || atF('pay3') || (atF('tr') && !did('tr.confirm2'))) ? st.budget : 0, toPay: pay ? st.reward : 0, payDue: pay ? payDue().due : 0, now: nowMs(),
     cfo: atF('apr') && !did('apr.approve') ? st.reward : 0, taken: takenAllNow(), reward: st.f > ix.com ? st.reward : 0, paid: st.f > ix.tr ? st.reward : 0,
     active: fromF('ord') && !done, admit: atF('req') && !st.halt };
 }
@@ -1263,7 +1449,7 @@ function renderDemo() {
       (m !== 'partner' ? '<span class="note">Смотрю как:</span>' + seg('data-role', 'Роль', Object.keys(ROLES).map(k => [k, ROLES[k].name + (k === 'admin' ? '' : ' (' + ROLES[k].who + ')')]), st.role) : '<span class="note">Партнёр видит только своё: заказ, платежи, клиентов без имён, выплаты</span>') +
       (m === 'admin' ? '<span class="note">Соединитель:</span>' + seg('data-conn', 'Соединитель пути', [['line', 'линия'], ['arrow', 'линия со стрелкой']], st.conn) : '') + '<span class="note">Тема:</span>' + themeSeg + '<button type="button" class="btn btn--s btn--quiet mk-bar__end" id="demoToggle">Свернуть панель</button></div>' +
       (card ? '<div class="mk-bar__row">' + step + '<button type="button" class="btn btn--s btn--quiet" id="bReset">Сначала</button><span class="note">Партнёр: ' + esc(partnerOf(st.pid).name) + ', кадр ' + (st.f + 1) + ' из ' + F.length + '</span>' +
-        '<label class="check"><input type="checkbox" id="xc"' + (st.excp ? ' checked' : '') + '><span>Исключение: 1 заявка не привязалась сама</span></label><label class="check"><input type="checkbox" id="xr"' + (st.remarks ? ' checked' : '') + '><span>Партнёр прислал замечания к отчёту</span></label><label class="check"><input type="checkbox" id="xp"' + (st.pauseFail ? ' checked' : '') + '><span>Пауза в Meta не пройдёт</span></label><label class="check"><input type="checkbox" id="xq"' + (reqOk() ? '' : ' checked') + '><span>Реквизиты Housebook не заполнены</span></label><span class="note">Сторож Meta:</span><select class="select select--s" id="xa" aria-label="Тревога сторожа Meta">' + [['', 'тревог нет'], ['cap_removed', 'лимит снят'], ['cap_over_paid', 'лимит больше оплаченного'], ['active_while_stopped', 'кампания идёт у остановленного заказа'], ['account_not_usd', 'кабинет не в USD']].map(o => '<option value="' + o[0] + '"' + (st.alert === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select><span class="note">Переключатели только для показа макета. Имена сотрудников вымышлены. Шаги в пути тоже можно нажимать.</span></div>' : '<div class="mk-bar__row"><span class="note">Нажмите на партнёра, чтобы открыть его карточку, или «Перейти к задаче». У каждого партнёра свои часы и своя точка пути.</span></div>');
+        '<label class="check"><input type="checkbox" id="xc"' + (st.excp ? ' checked' : '') + '><span>Исключение: 1 заявка не привязалась сама</span></label><label class="check"><input type="checkbox" id="xr"' + (st.remarks ? ' checked' : '') + '><span>Партнёр прислал замечания к отчёту</span></label><label class="check"><input type="checkbox" id="xp"' + (st.pauseFail ? ' checked' : '') + '><span>Пауза в Meta не пройдёт (и повтор после ограничения «не чаще раза в 30 секунд» тоже)</span></label><label class="check"><input type="checkbox" id="xq"' + (reqOk() ? '' : ' checked') + '><span>Реквизиты Housebook не заполнены</span></label><span class="note">Сторож Meta:</span><select class="select select--s" id="xa" aria-label="Тревога сторожа Meta">' + [['', 'тревог нет'], ['cap_removed', 'лимит снят'], ['cap_over_paid', 'лимит больше оплаченного'], ['active_while_stopped', 'кампания идёт у остановленного заказа'], ['account_not_usd', 'кабинет не в USD']].map(o => '<option value="' + o[0] + '"' + (st.alert === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select><span class="note">Переключатели только для показа макета. Имена сотрудников вымышлены. Шаги в пути тоже можно нажимать.</span></div>' : '<div class="mk-bar__row"><span class="note">Нажмите на партнёра, чтобы открыть его карточку, или «Перейти к задаче». У каждого партнёра свои часы и своя точка пути.</span></div>');
   }
   $$('#demo [data-mode]').forEach(b => { b.onclick = () => { st.mode = b.getAttribute('data-mode'); render(); writeHash(); window.scrollTo(0, 0); }; });
   $$('#demo [data-conn]').forEach(b => { b.onclick = () => { st.conn = b.getAttribute('data-conn'); render(); }; });
@@ -1370,7 +1556,7 @@ function revealStep() {
   if (!c || p.scrollWidth <= p.clientWidth) return;
   p.scrollLeft = c.getBoundingClientRect().left - p.getBoundingClientRect().left + p.scrollLeft - (p.clientWidth - c.offsetWidth) / 2;
 }
-const STOP_ASK = who => ({ title: 'Остановить расходы?', text: (who === 'partner' ? 'Housebook получит тревогу немедленно. ' : 'Тревога уйдёт немедленно. ') + 'Система сразу поставит кампанию в Meta на паузу. Если пауза не пройдёт, маркетингу придёт красная задача остановить кампанию вручную (срок п. 5.3 договора: 1 рабочий день), а администратору причина. Расходы будут считаться остановленными.', ok: 'Да, остановить расходы', keep: 'Не останавливать', reason: who === 'partner' });
+const STOP_ASK = who => ({ title: 'Остановить расходы?', text: (who === 'partner' ? 'Housebook получит тревогу немедленно. ' : 'Тревога уйдёт немедленно. ') + 'Система сразу поставит кампанию в Meta на паузу. Если Meta ограничит запросы («не чаще раза в 30 секунд»), система отложит паузу и повторит её при следующей сверке. Если не пройдёт и повтор, маркетингу придёт красная задача остановить кампанию вручную (срок п. 5.3 договора: 1 рабочий день), а администратору причина. Расходы будут считаться остановленными.', ok: 'Да, остановить расходы', keep: 'Не останавливать', reason: who === 'partner' });
 function bindApp() {
   const rail = $('#rail'); if (rail) rail.onclick = () => { st.rail = !st.rail; render(); };
   $$('#path .path__go').forEach(b => { b.onclick = () => setF(+b.getAttribute('data-f')); });
